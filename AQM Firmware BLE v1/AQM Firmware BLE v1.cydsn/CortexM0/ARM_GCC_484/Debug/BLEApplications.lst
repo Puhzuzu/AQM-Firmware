@@ -1,0 +1,2455 @@
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 1
+
+
+   1              		.cpu cortex-m0
+   2              		.fpu softvfp
+   3              		.eabi_attribute 20, 1
+   4              		.eabi_attribute 21, 1
+   5              		.eabi_attribute 23, 3
+   6              		.eabi_attribute 24, 1
+   7              		.eabi_attribute 25, 1
+   8              		.eabi_attribute 26, 1
+   9              		.eabi_attribute 30, 6
+  10              		.eabi_attribute 34, 0
+  11              		.eabi_attribute 18, 4
+  12              		.code	16
+  13              		.file	"BLEApplications.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.global	deviceConnected
+  18              		.bss
+  19              		.type	deviceConnected, %object
+  20              		.size	deviceConnected, 1
+  21              	deviceConnected:
+  22 0000 00       		.space	1
+  23              		.global	startNotification
+  24              		.type	startNotification, %object
+  25              		.size	startNotification, 1
+  26              	startNotification:
+  27 0001 00       		.space	1
+  28              		.comm	connectionHandle,2,4
+  29              		.global	restartAdvertisement
+  30              		.type	restartAdvertisement, %object
+  31              		.size	restartAdvertisement, 1
+  32              	restartAdvertisement:
+  33 0002 00       		.space	1
+  34              		.global	updateNotificationCCCAttribute
+  35              		.type	updateNotificationCCCAttribute, %object
+  36              		.size	updateNotificationCCCAttribute, 1
+  37              	updateNotificationCCCAttribute:
+  38 0003 00       		.space	1
+  39              		.data
+  40              		.type	isConnectionUpdateRequested, %object
+  41              		.size	isConnectionUpdateRequested, 1
+  42              	isConnectionUpdateRequested:
+  43 0000 01       		.byte	1
+  44 0001 000000   		.align	2
+  45              		.type	ConnectionParam, %object
+  46              		.size	ConnectionParam, 8
+  47              	ConnectionParam:
+  48 0004 3200     		.short	50
+  49 0006 3C00     		.short	60
+  50 0008 0000     		.short	0
+  51 000a C800     		.short	200
+  52              		.global	busyStatus
+  53              		.bss
+  54              		.type	busyStatus, %object
+  55              		.size	busyStatus, 1
+  56              	busyStatus:
+  57 0004 00       		.space	1
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 2
+
+
+  58              		.section	.text.CustomEventHandler,"ax",%progbits
+  59              		.align	2
+  60              		.global	CustomEventHandler
+  61              		.code	16
+  62              		.thumb_func
+  63              		.type	CustomEventHandler, %function
+  64              	CustomEventHandler:
+  65              	.LFB35:
+  66              		.file 1 ".\\BLEApplications.c"
+   1:.\BLEApplications.c **** /* ========================================
+   2:.\BLEApplications.c ****  *
+   3:.\BLEApplications.c ****  * Copyright YOUR COMPANY, THE YEAR
+   4:.\BLEApplications.c ****  * All Rights Reserved
+   5:.\BLEApplications.c ****  * UNPUBLISHED, LICENSED SOFTWARE.
+   6:.\BLEApplications.c ****  *
+   7:.\BLEApplications.c ****  * CONFIDENTIAL AND PROPRIETARY INFORMATION
+   8:.\BLEApplications.c ****  * WHICH IS THE PROPERTY OF your company.
+   9:.\BLEApplications.c ****  *
+  10:.\BLEApplications.c ****  * ========================================
+  11:.\BLEApplications.c **** */
+  12:.\BLEApplications.c **** #include "main.h"
+  13:.\BLEApplications.c **** 
+  14:.\BLEApplications.c **** /**************************Variable Declarations*****************************/
+  15:.\BLEApplications.c **** /*'deviceConnected' flag is used by application to know whether a Central device  
+  16:.\BLEApplications.c **** * has been connected. This is updated in BLE event callback */
+  17:.\BLEApplications.c **** uint8 deviceConnected = FALSE;	
+  18:.\BLEApplications.c **** 
+  19:.\BLEApplications.c **** /*'startNotification' flag is set when the central device writes to CCC (Client 
+  20:.\BLEApplications.c **** * Characteristic Configuration) of the CapSense proximity characteristic to 
+  21:.\BLEApplications.c **** *enable notifications */
+  22:.\BLEApplications.c **** uint8 startNotification = FALSE;		
+  23:.\BLEApplications.c **** 
+  24:.\BLEApplications.c **** /* 'connectionHandle' is handle to store BLE connection parameters */
+  25:.\BLEApplications.c **** CYBLE_CONN_HANDLE_T  				connectionHandle;	
+  26:.\BLEApplications.c **** 
+  27:.\BLEApplications.c **** /* 'restartAdvertisement' flag provided the present state of power mode in firmware */
+  28:.\BLEApplications.c **** uint8 restartAdvertisement = FALSE;
+  29:.\BLEApplications.c **** 
+  30:.\BLEApplications.c **** /* This flag is used to let application update the CCCD value for correct read 
+  31:.\BLEApplications.c **** * operation by connected Central device */
+  32:.\BLEApplications.c **** uint8 updateNotificationCCCAttribute = FALSE;
+  33:.\BLEApplications.c **** 
+  34:.\BLEApplications.c **** /* This flag is used to let application send a L2CAP connection update request
+  35:.\BLEApplications.c **** * to Central device */
+  36:.\BLEApplications.c **** static uint8 isConnectionUpdateRequested = TRUE;
+  37:.\BLEApplications.c **** 
+  38:.\BLEApplications.c **** /* Connection Parameter update values. This values are used by the BLE component
+  39:.\BLEApplications.c **** * to update the connector parameter, including connection interval, to desired 
+  40:.\BLEApplications.c **** * value */
+  41:.\BLEApplications.c **** static CYBLE_GAP_CONN_UPDATE_PARAM_T ConnectionParam =
+  42:.\BLEApplications.c **** {
+  43:.\BLEApplications.c ****     CONN_PARAM_UPDATE_MIN_CONN_INTERVAL,  		      
+  44:.\BLEApplications.c ****     CONN_PARAM_UPDATE_MAX_CONN_INTERVAL,		       
+  45:.\BLEApplications.c ****     CONN_PARAM_UPDATE_SLAVE_LATENCY,			    
+  46:.\BLEApplications.c ****     CONN_PARAM_UPDATE_SUPRV_TIMEOUT 			         	
+  47:.\BLEApplications.c **** };
+  48:.\BLEApplications.c **** 
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 3
+
+
+  49:.\BLEApplications.c **** /* Status flag for the Stack Busy state. This flag is used to notify the application 
+  50:.\BLEApplications.c **** * whether there is stack buffer free to push more data or not */
+  51:.\BLEApplications.c **** uint8 busyStatus = CYBLE_STACK_STATE_FREE;
+  52:.\BLEApplications.c **** 
+  53:.\BLEApplications.c **** extern float dataArray[];
+  54:.\BLEApplications.c **** //extern uint8 eeprom_read_index;
+  55:.\BLEApplications.c **** 
+  56:.\BLEApplications.c **** /****************************************************************************/
+  57:.\BLEApplications.c **** //BLE STACK HANDLING
+  58:.\BLEApplications.c **** void CustomEventHandler(uint32 event, void *eventParam)
+  59:.\BLEApplications.c **** {
+  67              		.loc 1 59 0
+  68              		.cfi_startproc
+  69 0000 80B5     		push	{r7, lr}
+  70              		.cfi_def_cfa_offset 8
+  71              		.cfi_offset 7, -8
+  72              		.cfi_offset 14, -4
+  73 0002 84B0     		sub	sp, sp, #16
+  74              		.cfi_def_cfa_offset 24
+  75 0004 00AF     		add	r7, sp, #0
+  76              		.cfi_def_cfa_register 7
+  77 0006 7860     		str	r0, [r7, #4]
+  78 0008 3960     		str	r1, [r7]
+  60:.\BLEApplications.c ****     CYBLE_GATTS_WRITE_REQ_PARAM_T *wrReqParam;
+  61:.\BLEApplications.c **** 	
+  62:.\BLEApplications.c ****     switch(event)
+  79              		.loc 1 62 0
+  80 000a 7B68     		ldr	r3, [r7, #4]
+  81 000c 272B     		cmp	r3, #39
+  82 000e 00D1     		bne	.LCB16
+  83 0010 63E0     		b	.L19	@long jump
+  84              	.LCB16:
+  85 0012 0BD8     		bhi	.L4
+  86 0014 022B     		cmp	r3, #2
+  87 0016 00D1     		bne	.LCB20
+  88 0018 61E0     		b	.L20	@long jump
+  89              	.LCB20:
+  90 001a 02D8     		bhi	.L6
+  91 001c 012B     		cmp	r3, #1
+  92 001e 12D0     		beq	.L7
+  63:.\BLEApplications.c **** 	{
+  64:.\BLEApplications.c ****         /**********************************************************
+  65:.\BLEApplications.c ****         *                       General Events
+  66:.\BLEApplications.c ****         ***********************************************************/
+  67:.\BLEApplications.c **** 		case CYBLE_EVT_STACK_ON:
+  68:.\BLEApplications.c **** 			/* This event is received when component is Started */
+  69:.\BLEApplications.c **** 			
+  70:.\BLEApplications.c **** 			/* Set restartAdvertisement flag to allow calling Advertisement 
+  71:.\BLEApplications.c **** 			* API from main function */
+  72:.\BLEApplications.c **** 			restartAdvertisement = TRUE;
+  73:.\BLEApplications.c **** 			
+  74:.\BLEApplications.c **** 			break;
+  75:.\BLEApplications.c **** 		
+  76:.\BLEApplications.c **** 		case CYBLE_EVT_TIMEOUT:
+  77:.\BLEApplications.c **** 			/* Event Handling for Timeout  */
+  78:.\BLEApplications.c **** 			
+  79:.\BLEApplications.c **** 			break;
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 4
+
+
+  80:.\BLEApplications.c **** 		
+  81:.\BLEApplications.c ****         /**********************************************************
+  82:.\BLEApplications.c ****         *                       GAP Events
+  83:.\BLEApplications.c ****         ***********************************************************/
+  84:.\BLEApplications.c **** 				
+  85:.\BLEApplications.c ****         case CYBLE_EVT_GAPP_ADVERTISEMENT_START_STOP:
+  86:.\BLEApplications.c **** 			
+  87:.\BLEApplications.c **** 			if(CyBle_GetState() == CYBLE_STATE_DISCONNECTED)
+  88:.\BLEApplications.c **** 			{
+  89:.\BLEApplications.c **** 				/* Set restartAdvertisement flag to allow calling Advertisement 
+  90:.\BLEApplications.c **** 				* API from main function */
+  91:.\BLEApplications.c **** 				restartAdvertisement = TRUE;
+  92:.\BLEApplications.c **** 			}
+  93:.\BLEApplications.c **** 			break;
+  94:.\BLEApplications.c **** 			
+  95:.\BLEApplications.c **** 		case CYBLE_EVT_GAP_DEVICE_CONNECTED:		
+  96:.\BLEApplications.c **** 			/* This event is received when device is connected over GAP layer */
+  97:.\BLEApplications.c **** 
+  98:.\BLEApplications.c **** 			break;
+  99:.\BLEApplications.c **** 			
+ 100:.\BLEApplications.c ****         case CYBLE_EVT_GAP_DEVICE_DISCONNECTED:		
+ 101:.\BLEApplications.c **** 			/* This event is received when device is disconnected */
+ 102:.\BLEApplications.c **** 			
+ 103:.\BLEApplications.c **** 			/* Set restartAdvertisement flag to allow calling Advertisement 
+ 104:.\BLEApplications.c **** 			* API from main function */
+ 105:.\BLEApplications.c **** 			restartAdvertisement = TRUE;
+ 106:.\BLEApplications.c **** 
+ 107:.\BLEApplications.c ****             break;
+ 108:.\BLEApplications.c **** 
+ 109:.\BLEApplications.c ****         /**********************************************************
+ 110:.\BLEApplications.c ****         *                       GATT Events
+ 111:.\BLEApplications.c ****         ***********************************************************/
+ 112:.\BLEApplications.c ****         case CYBLE_EVT_GATT_CONNECT_IND:
+ 113:.\BLEApplications.c **** 			/* This event is received when device is connected over GATT level */
+ 114:.\BLEApplications.c **** 			
+ 115:.\BLEApplications.c **** 			/* Update attribute handle on GATT Connection*/
+ 116:.\BLEApplications.c ****             connectionHandle = *(CYBLE_CONN_HANDLE_T *)eventParam;	
+ 117:.\BLEApplications.c **** 			
+ 118:.\BLEApplications.c **** 			/* This flag is used in application to check connection status */
+ 119:.\BLEApplications.c **** 			deviceConnected = TRUE;	
+ 120:.\BLEApplications.c **** 	
+ 121:.\BLEApplications.c ****             break;
+ 122:.\BLEApplications.c **** 			
+ 123:.\BLEApplications.c ****         case CYBLE_EVT_GATT_DISCONNECT_IND:	
+ 124:.\BLEApplications.c **** 			/*This event is received when device is disconnected. 
+ 125:.\BLEApplications.c **** 			* Update connection flag accordingly */
+ 126:.\BLEApplications.c **** 			deviceConnected = FALSE;
+ 127:.\BLEApplications.c **** 			
+ 128:.\BLEApplications.c **** 			/* Reset notification flag to prevent further notifications
+ 129:.\BLEApplications.c **** 			 * being sent to Central device after next connection. */
+ 130:.\BLEApplications.c **** 			startNotification = FALSE;
+ 131:.\BLEApplications.c **** 			
+ 132:.\BLEApplications.c **** 			/* Reset the CCCD value to disable notifications */
+ 133:.\BLEApplications.c **** 			updateNotificationCCCAttribute = TRUE;
+ 134:.\BLEApplications.c **** 			UpdateNotificationCCCD();
+ 135:.\BLEApplications.c **** 			
+ 136:.\BLEApplications.c **** 			/* Reset the isConnectionUpdateRequested flag to allow sending
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 5
+
+
+ 137:.\BLEApplications.c **** 			* connection parameter update request in next connection */
+ 138:.\BLEApplications.c **** 			isConnectionUpdateRequested = TRUE;
+ 139:.\BLEApplications.c **** 			break;    
+ 140:.\BLEApplications.c **** 			
+ 141:.\BLEApplications.c **** 			
+ 142:.\BLEApplications.c ****         case CYBLE_EVT_GATTS_WRITE_REQ:				
+ 143:.\BLEApplications.c **** 			/*When this event is triggered, the peripheral has received 
+ 144:.\BLEApplications.c **** 			* a write command on the custom characteristic */
+ 145:.\BLEApplications.c **** 			
+ 146:.\BLEApplications.c **** 			/* Extract the write value from the event parameter */
+ 147:.\BLEApplications.c ****             wrReqParam = (CYBLE_GATTS_WRITE_REQ_PARAM_T *) eventParam;
+ 148:.\BLEApplications.c **** 			/* Check if the returned handle is matching to Random Data Client custom configuration*/
+ 149:.\BLEApplications.c ****             if(CYBLE_AIR_QUALITY_DATA_AIR_QUALITY_DATA_CLIENT_CHARACTERISTIC_CONFIGURATION_DESC_HAN
+ 150:.\BLEApplications.c ****             {
+ 151:.\BLEApplications.c ****                 /* Set flag so that application can start sending notifications.*/
+ 152:.\BLEApplications.c **** 				startNotification = wrReqParam->handleValPair.value.val[CYBLE_AIR_QUALITY_DATA_AIR_QUALITY_DATA
+ 153:.\BLEApplications.c **** 				
+ 154:.\BLEApplications.c **** 				/* Set flag to allow CCCD to be updated for next read operation */
+ 155:.\BLEApplications.c **** 				updateNotificationCCCAttribute = TRUE;
+ 156:.\BLEApplications.c **** 			}
+ 157:.\BLEApplications.c **** 			/* Send the response to the write command received. */
+ 158:.\BLEApplications.c **** 			CyBle_GattsWriteRsp(connectionHandle);			
+ 159:.\BLEApplications.c ****             break;			
+ 160:.\BLEApplications.c **** 		
+ 161:.\BLEApplications.c **** 		case CYBLE_EVT_L2CAP_CONN_PARAM_UPDATE_RSP:
+ 162:.\BLEApplications.c **** 				/* If L2CAP connection parameter update response received, reset application flag */
+ 163:.\BLEApplications.c ****             	isConnectionUpdateRequested = FALSE;
+ 164:.\BLEApplications.c ****             break;
+ 165:.\BLEApplications.c **** 		
+ 166:.\BLEApplications.c **** 		case CYBLE_EVT_STACK_BUSY_STATUS:
+ 167:.\BLEApplications.c **** 			/* This event is generated when the internal stack buffer is full and no more
+ 168:.\BLEApplications.c **** 			* data can be accepted or the stack has buffer available and can accept data.
+ 169:.\BLEApplications.c **** 			* This event is used by application to prevent pushing lot of data to stack. */
+ 170:.\BLEApplications.c **** 			
+ 171:.\BLEApplications.c **** 			/* Extract the present stack status */
+ 172:.\BLEApplications.c ****             busyStatus = * (uint8*)eventParam;
+ 173:.\BLEApplications.c ****             break;
+ 174:.\BLEApplications.c **** 			
+ 175:.\BLEApplications.c ****         default:
+ 176:.\BLEApplications.c ****                         
+ 177:.\BLEApplications.c ****             break;
+  93              		.loc 1 177 0
+  94 0020 5EE0     		b	.L1
+  95              	.L6:
+  62:.\BLEApplications.c ****     switch(event)
+  96              		.loc 1 62 0
+  97 0022 052B     		cmp	r3, #5
+  98 0024 54D0     		beq	.L8
+  99 0026 262B     		cmp	r3, #38
+ 100 0028 11D0     		beq	.L9
+ 101              		.loc 1 177 0
+ 102 002a 59E0     		b	.L1
+ 103              	.L4:
+  62:.\BLEApplications.c ****     switch(event)
+ 104              		.loc 1 62 0
+ 105 002c 422B     		cmp	r3, #66
+ 106 002e 29D0     		beq	.L10
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 6
+
+
+ 107 0030 04D8     		bhi	.L11
+ 108 0032 282B     		cmp	r3, #40
+ 109 0034 14D0     		beq	.L12
+ 110 0036 412B     		cmp	r3, #65
+ 111 0038 16D0     		beq	.L13
+ 112              		.loc 1 177 0
+ 113 003a 51E0     		b	.L1
+ 114              	.L11:
+  62:.\BLEApplications.c ****     switch(event)
+ 115              		.loc 1 62 0
+ 116 003c 4C2B     		cmp	r3, #76
+ 117 003e 30D0     		beq	.L14
+ 118 0040 712B     		cmp	r3, #113
+ 119 0042 41D0     		beq	.L15
+ 120              		.loc 1 177 0
+ 121 0044 4CE0     		b	.L1
+ 122              	.L7:
+  72:.\BLEApplications.c **** 			restartAdvertisement = TRUE;
+ 123              		.loc 1 72 0
+ 124 0046 284B     		ldr	r3, .L21
+ 125 0048 0122     		mov	r2, #1
+ 126 004a 1A70     		strb	r2, [r3]
+  74:.\BLEApplications.c **** 			break;
+ 127              		.loc 1 74 0
+ 128 004c 48E0     		b	.L1
+ 129              	.L9:
+  87:.\BLEApplications.c **** 			if(CyBle_GetState() == CYBLE_STATE_DISCONNECTED)
+ 130              		.loc 1 87 0
+ 131 004e 274B     		ldr	r3, .L21+4
+ 132 0050 1B78     		ldrb	r3, [r3]
+ 133 0052 042B     		cmp	r3, #4
+ 134 0054 03D1     		bne	.L17
+  91:.\BLEApplications.c **** 				restartAdvertisement = TRUE;
+ 135              		.loc 1 91 0
+ 136 0056 244B     		ldr	r3, .L21
+ 137 0058 0122     		mov	r2, #1
+ 138 005a 1A70     		strb	r2, [r3]
+  93:.\BLEApplications.c **** 			break;
+ 139              		.loc 1 93 0
+ 140 005c 40E0     		b	.L1
+ 141              	.L17:
+ 142 005e 3FE0     		b	.L1
+ 143              	.L12:
+ 105:.\BLEApplications.c **** 			restartAdvertisement = TRUE;
+ 144              		.loc 1 105 0
+ 145 0060 214B     		ldr	r3, .L21
+ 146 0062 0122     		mov	r2, #1
+ 147 0064 1A70     		strb	r2, [r3]
+ 107:.\BLEApplications.c ****             break;
+ 148              		.loc 1 107 0
+ 149 0066 3BE0     		b	.L1
+ 150              	.L13:
+ 116:.\BLEApplications.c ****             connectionHandle = *(CYBLE_CONN_HANDLE_T *)eventParam;	
+ 151              		.loc 1 116 0
+ 152 0068 214A     		ldr	r2, .L21+8
+ 153 006a 3B68     		ldr	r3, [r7]
+ 154 006c 111C     		mov	r1, r2
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 7
+
+
+ 155 006e 1A1C     		mov	r2, r3
+ 156 0070 0223     		mov	r3, #2
+ 157 0072 081C     		mov	r0, r1
+ 158 0074 111C     		mov	r1, r2
+ 159 0076 1A1C     		mov	r2, r3
+ 160 0078 FFF7FEFF 		bl	memcpy
+ 119:.\BLEApplications.c **** 			deviceConnected = TRUE;	
+ 161              		.loc 1 119 0
+ 162 007c 1D4B     		ldr	r3, .L21+12
+ 163 007e 0122     		mov	r2, #1
+ 164 0080 1A70     		strb	r2, [r3]
+ 121:.\BLEApplications.c ****             break;
+ 165              		.loc 1 121 0
+ 166 0082 2DE0     		b	.L1
+ 167              	.L10:
+ 126:.\BLEApplications.c **** 			deviceConnected = FALSE;
+ 168              		.loc 1 126 0
+ 169 0084 1B4B     		ldr	r3, .L21+12
+ 170 0086 0022     		mov	r2, #0
+ 171 0088 1A70     		strb	r2, [r3]
+ 130:.\BLEApplications.c **** 			startNotification = FALSE;
+ 172              		.loc 1 130 0
+ 173 008a 1B4B     		ldr	r3, .L21+16
+ 174 008c 0022     		mov	r2, #0
+ 175 008e 1A70     		strb	r2, [r3]
+ 133:.\BLEApplications.c **** 			updateNotificationCCCAttribute = TRUE;
+ 176              		.loc 1 133 0
+ 177 0090 1A4B     		ldr	r3, .L21+20
+ 178 0092 0122     		mov	r2, #1
+ 179 0094 1A70     		strb	r2, [r3]
+ 134:.\BLEApplications.c **** 			UpdateNotificationCCCD();
+ 180              		.loc 1 134 0
+ 181 0096 FFF7FEFF 		bl	UpdateNotificationCCCD
+ 138:.\BLEApplications.c **** 			isConnectionUpdateRequested = TRUE;
+ 182              		.loc 1 138 0
+ 183 009a 194B     		ldr	r3, .L21+24
+ 184 009c 0122     		mov	r2, #1
+ 185 009e 1A70     		strb	r2, [r3]
+ 139:.\BLEApplications.c **** 			break;    
+ 186              		.loc 1 139 0
+ 187 00a0 1EE0     		b	.L1
+ 188              	.L14:
+ 147:.\BLEApplications.c ****             wrReqParam = (CYBLE_GATTS_WRITE_REQ_PARAM_T *) eventParam;
+ 189              		.loc 1 147 0
+ 190 00a2 3B68     		ldr	r3, [r7]
+ 191 00a4 FB60     		str	r3, [r7, #12]
+ 149:.\BLEApplications.c ****             if(CYBLE_AIR_QUALITY_DATA_AIR_QUALITY_DATA_CLIENT_CHARACTERISTIC_CONFIGURATION_DESC_HAN
+ 192              		.loc 1 149 0
+ 193 00a6 FB68     		ldr	r3, [r7, #12]
+ 194 00a8 9B89     		ldrh	r3, [r3, #12]
+ 195 00aa 0F2B     		cmp	r3, #15
+ 196 00ac 07D1     		bne	.L18
+ 152:.\BLEApplications.c **** 				startNotification = wrReqParam->handleValPair.value.val[CYBLE_AIR_QUALITY_DATA_AIR_QUALITY_DATA
+ 197              		.loc 1 152 0
+ 198 00ae FB68     		ldr	r3, [r7, #12]
+ 199 00b0 5B68     		ldr	r3, [r3, #4]
+ 200 00b2 1A78     		ldrb	r2, [r3]
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 8
+
+
+ 201 00b4 104B     		ldr	r3, .L21+16
+ 202 00b6 1A70     		strb	r2, [r3]
+ 155:.\BLEApplications.c **** 				updateNotificationCCCAttribute = TRUE;
+ 203              		.loc 1 155 0
+ 204 00b8 104B     		ldr	r3, .L21+20
+ 205 00ba 0122     		mov	r2, #1
+ 206 00bc 1A70     		strb	r2, [r3]
+ 207              	.L18:
+ 158:.\BLEApplications.c **** 			CyBle_GattsWriteRsp(connectionHandle);			
+ 208              		.loc 1 158 0
+ 209 00be 0C4B     		ldr	r3, .L21+8
+ 210 00c0 1868     		ldr	r0, [r3]
+ 211 00c2 FFF7FEFF 		bl	CyBle_GattsWriteRsp
+ 159:.\BLEApplications.c ****             break;			
+ 212              		.loc 1 159 0
+ 213 00c6 0BE0     		b	.L1
+ 214              	.L15:
+ 163:.\BLEApplications.c ****             	isConnectionUpdateRequested = FALSE;
+ 215              		.loc 1 163 0
+ 216 00c8 0D4B     		ldr	r3, .L21+24
+ 217 00ca 0022     		mov	r2, #0
+ 218 00cc 1A70     		strb	r2, [r3]
+ 164:.\BLEApplications.c ****             break;
+ 219              		.loc 1 164 0
+ 220 00ce 07E0     		b	.L1
+ 221              	.L8:
+ 172:.\BLEApplications.c ****             busyStatus = * (uint8*)eventParam;
+ 222              		.loc 1 172 0
+ 223 00d0 3B68     		ldr	r3, [r7]
+ 224 00d2 1A78     		ldrb	r2, [r3]
+ 225 00d4 0B4B     		ldr	r3, .L21+28
+ 226 00d6 1A70     		strb	r2, [r3]
+ 173:.\BLEApplications.c ****             break;
+ 227              		.loc 1 173 0
+ 228 00d8 02E0     		b	.L1
+ 229              	.L19:
+  98:.\BLEApplications.c **** 			break;
+ 230              		.loc 1 98 0
+ 231 00da C046     		mov	r8, r8
+ 232 00dc 00E0     		b	.L1
+ 233              	.L20:
+  79:.\BLEApplications.c **** 			break;
+ 234              		.loc 1 79 0
+ 235 00de C046     		mov	r8, r8
+ 236              	.L1:
+ 178:.\BLEApplications.c **** 	} /* switch(event)*/
+ 179:.\BLEApplications.c **** }
+ 237              		.loc 1 179 0
+ 238 00e0 BD46     		mov	sp, r7
+ 239 00e2 04B0     		add	sp, sp, #16
+ 240              		@ sp needed
+ 241 00e4 80BD     		pop	{r7, pc}
+ 242              	.L22:
+ 243 00e6 C046     		.align	2
+ 244              	.L21:
+ 245 00e8 00000000 		.word	restartAdvertisement
+ 246 00ec 00000000 		.word	cyBle_state
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 9
+
+
+ 247 00f0 00000000 		.word	connectionHandle
+ 248 00f4 00000000 		.word	deviceConnected
+ 249 00f8 00000000 		.word	startNotification
+ 250 00fc 00000000 		.word	updateNotificationCCCAttribute
+ 251 0100 00000000 		.word	isConnectionUpdateRequested
+ 252 0104 00000000 		.word	busyStatus
+ 253              		.cfi_endproc
+ 254              	.LFE35:
+ 255              		.size	CustomEventHandler, .-CustomEventHandler
+ 256              		.section	.text.SendDataOverNotification,"ax",%progbits
+ 257              		.align	2
+ 258              		.global	SendDataOverNotification
+ 259              		.code	16
+ 260              		.thumb_func
+ 261              		.type	SendDataOverNotification, %function
+ 262              	SendDataOverNotification:
+ 263              	.LFB36:
+ 180:.\BLEApplications.c **** 
+ 181:.\BLEApplications.c **** //Updates notification data and reports new data to BLE for sending over notifications
+ 182:.\BLEApplications.c **** //Input: uint8 array
+ 183:.\BLEApplications.c **** void SendDataOverNotification(uint8 *randValue)
+ 184:.\BLEApplications.c **** {
+ 264              		.loc 1 184 0
+ 265              		.cfi_startproc
+ 266 0000 80B5     		push	{r7, lr}
+ 267              		.cfi_def_cfa_offset 8
+ 268              		.cfi_offset 7, -8
+ 269              		.cfi_offset 14, -4
+ 270 0002 86B0     		sub	sp, sp, #24
+ 271              		.cfi_def_cfa_offset 32
+ 272 0004 00AF     		add	r7, sp, #0
+ 273              		.cfi_def_cfa_register 7
+ 274 0006 7860     		str	r0, [r7, #4]
+ 185:.\BLEApplications.c **** 	/* 'notificationHandle' is handle to store notification data parameters */
+ 186:.\BLEApplications.c **** 	CYBLE_GATTS_HANDLE_VALUE_NTF_T		notificationHandle; 
+ 187:.\BLEApplications.c **** 	
+ 188:.\BLEApplications.c **** 	/* If stack is not busy, then send the notification */
+ 189:.\BLEApplications.c **** 	if(busyStatus == CYBLE_STACK_STATE_FREE)
+ 275              		.loc 1 189 0
+ 276 0008 0C4B     		ldr	r3, .L25
+ 277 000a 1B78     		ldrb	r3, [r3]
+ 278 000c 002B     		cmp	r3, #0
+ 279 000e 12D1     		bne	.L23
+ 190:.\BLEApplications.c **** 	{
+ 191:.\BLEApplications.c **** 		/* Update Notification handle with random data*/
+ 192:.\BLEApplications.c **** 		notificationHandle.attrHandle = CYBLE_AIR_QUALITY_DATA_AIR_QUALITY_DATA_CHAR_HANDLE;				
+ 280              		.loc 1 192 0
+ 281 0010 3B1C     		mov	r3, r7
+ 282 0012 0C33     		add	r3, r3, #12
+ 283 0014 0E22     		mov	r2, #14
+ 284 0016 1A81     		strh	r2, [r3, #8]
+ 193:.\BLEApplications.c **** 		notificationHandle.value.val = randValue;
+ 285              		.loc 1 193 0
+ 286 0018 3B1C     		mov	r3, r7
+ 287 001a 0C33     		add	r3, r3, #12
+ 288 001c 7A68     		ldr	r2, [r7, #4]
+ 289 001e 1A60     		str	r2, [r3]
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 10
+
+
+ 194:.\BLEApplications.c **** 		notificationHandle.value.len = RAND_NOTIFICATION_DATA_LEN;
+ 290              		.loc 1 194 0
+ 291 0020 3B1C     		mov	r3, r7
+ 292 0022 0C33     		add	r3, r3, #12
+ 293 0024 0122     		mov	r2, #1
+ 294 0026 9A80     		strh	r2, [r3, #4]
+ 195:.\BLEApplications.c **** 		
+ 196:.\BLEApplications.c **** 		/* Report data to BLE component for sending data by notifications*/
+ 197:.\BLEApplications.c **** 		CyBle_GattsNotification(connectionHandle,&notificationHandle);
+ 295              		.loc 1 197 0
+ 296 0028 054B     		ldr	r3, .L25+4
+ 297 002a 3A1C     		mov	r2, r7
+ 298 002c 0C32     		add	r2, r2, #12
+ 299 002e 1868     		ldr	r0, [r3]
+ 300 0030 111C     		mov	r1, r2
+ 301 0032 FFF7FEFF 		bl	CyBle_GattsNotification
+ 302              	.L23:
+ 198:.\BLEApplications.c **** 	}
+ 199:.\BLEApplications.c **** }
+ 303              		.loc 1 199 0
+ 304 0036 BD46     		mov	sp, r7
+ 305 0038 06B0     		add	sp, sp, #24
+ 306              		@ sp needed
+ 307 003a 80BD     		pop	{r7, pc}
+ 308              	.L26:
+ 309              		.align	2
+ 310              	.L25:
+ 311 003c 00000000 		.word	busyStatus
+ 312 0040 00000000 		.word	connectionHandle
+ 313              		.cfi_endproc
+ 314              	.LFE36:
+ 315              		.size	SendDataOverNotification, .-SendDataOverNotification
+ 316              		.section	.text.UpdateConnectionParam,"ax",%progbits
+ 317              		.align	2
+ 318              		.global	UpdateConnectionParam
+ 319              		.code	16
+ 320              		.thumb_func
+ 321              		.type	UpdateConnectionParam, %function
+ 322              	UpdateConnectionParam:
+ 323              	.LFB37:
+ 200:.\BLEApplications.c **** 
+ 201:.\BLEApplications.c **** //Communicates the connection parameters to connected device after connection has been established.
+ 202:.\BLEApplications.c **** void UpdateConnectionParam(void)
+ 203:.\BLEApplications.c **** {
+ 324              		.loc 1 203 0
+ 325              		.cfi_startproc
+ 326 0000 80B5     		push	{r7, lr}
+ 327              		.cfi_def_cfa_offset 8
+ 328              		.cfi_offset 7, -8
+ 329              		.cfi_offset 14, -4
+ 330 0002 00AF     		add	r7, sp, #0
+ 331              		.cfi_def_cfa_register 7
+ 204:.\BLEApplications.c **** 	/* If device is connected and Update connection parameter not updated yet,
+ 205:.\BLEApplications.c **** 	* then send the Connection Parameter Update request to Client. */
+ 206:.\BLEApplications.c ****     if(deviceConnected && isConnectionUpdateRequested)
+ 332              		.loc 1 206 0
+ 333 0004 094B     		ldr	r3, .L29
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 11
+
+
+ 334 0006 1B78     		ldrb	r3, [r3]
+ 335 0008 002B     		cmp	r3, #0
+ 336 000a 0DD0     		beq	.L27
+ 337              		.loc 1 206 0 is_stmt 0 discriminator 1
+ 338 000c 084B     		ldr	r3, .L29+4
+ 339 000e 1B78     		ldrb	r3, [r3]
+ 340 0010 002B     		cmp	r3, #0
+ 341 0012 09D0     		beq	.L27
+ 207:.\BLEApplications.c **** 	{
+ 208:.\BLEApplications.c **** 		/* Reset the flag to indicate that connection Update request has been sent */
+ 209:.\BLEApplications.c **** 		isConnectionUpdateRequested = FALSE;
+ 342              		.loc 1 209 0 is_stmt 1
+ 343 0014 064B     		ldr	r3, .L29+4
+ 344 0016 0022     		mov	r2, #0
+ 345 0018 1A70     		strb	r2, [r3]
+ 210:.\BLEApplications.c **** 		
+ 211:.\BLEApplications.c **** 		/* Send Connection Update request with set Parameter */
+ 212:.\BLEApplications.c **** 		CyBle_L2capLeConnectionParamUpdateRequest(connectionHandle.bdHandle, &ConnectionParam);
+ 346              		.loc 1 212 0
+ 347 001a 064B     		ldr	r3, .L29+8
+ 348 001c 1A78     		ldrb	r2, [r3]
+ 349 001e 064B     		ldr	r3, .L29+12
+ 350 0020 101C     		mov	r0, r2
+ 351 0022 191C     		mov	r1, r3
+ 352 0024 FFF7FEFF 		bl	CyBle_L2capLeConnectionParamUpdateRequest
+ 353              	.L27:
+ 213:.\BLEApplications.c **** 	}
+ 214:.\BLEApplications.c **** }
+ 354              		.loc 1 214 0
+ 355 0028 BD46     		mov	sp, r7
+ 356              		@ sp needed
+ 357 002a 80BD     		pop	{r7, pc}
+ 358              	.L30:
+ 359              		.align	2
+ 360              	.L29:
+ 361 002c 00000000 		.word	deviceConnected
+ 362 0030 00000000 		.word	isConnectionUpdateRequested
+ 363 0034 00000000 		.word	connectionHandle
+ 364 0038 04000000 		.word	ConnectionParam
+ 365              		.cfi_endproc
+ 366              	.LFE37:
+ 367              		.size	UpdateConnectionParam, .-UpdateConnectionParam
+ 368              		.section	.text.UpdateNotificationCCCD,"ax",%progbits
+ 369              		.align	2
+ 370              		.global	UpdateNotificationCCCD
+ 371              		.code	16
+ 372              		.thumb_func
+ 373              		.type	UpdateNotificationCCCD, %function
+ 374              	UpdateNotificationCCCD:
+ 375              	.LFB38:
+ 215:.\BLEApplications.c **** 
+ 216:.\BLEApplications.c **** //Updates BLE component with new notification status
+ 217:.\BLEApplications.c **** void UpdateNotificationCCCD(void)
+ 218:.\BLEApplications.c **** {
+ 376              		.loc 1 218 0
+ 377              		.cfi_startproc
+ 378 0000 80B5     		push	{r7, lr}
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 12
+
+
+ 379              		.cfi_def_cfa_offset 8
+ 380              		.cfi_offset 7, -8
+ 381              		.cfi_offset 14, -4
+ 382 0002 84B0     		sub	sp, sp, #16
+ 383              		.cfi_def_cfa_offset 24
+ 384 0004 00AF     		add	r7, sp, #0
+ 385              		.cfi_def_cfa_register 7
+ 219:.\BLEApplications.c **** 	/* Local variable to store the current CCCD value */
+ 220:.\BLEApplications.c **** 	uint8 CCCDvalue[2];
+ 221:.\BLEApplications.c **** 	
+ 222:.\BLEApplications.c **** 	/* Handle value to update the CCCD */
+ 223:.\BLEApplications.c **** 	CYBLE_GATT_HANDLE_VALUE_PAIR_T	 notificationCCCDhandle;
+ 224:.\BLEApplications.c **** 	
+ 225:.\BLEApplications.c **** 	/* Update notification attribute only when there has been change */
+ 226:.\BLEApplications.c **** 	if(updateNotificationCCCAttribute)
+ 386              		.loc 1 226 0
+ 387 0006 124B     		ldr	r3, .L33
+ 388 0008 1B78     		ldrb	r3, [r3]
+ 389 000a 002B     		cmp	r3, #0
+ 390 000c 1DD0     		beq	.L31
+ 227:.\BLEApplications.c **** 	{	
+ 228:.\BLEApplications.c **** 
+ 229:.\BLEApplications.c **** 		updateNotificationCCCAttribute=FALSE;
+ 391              		.loc 1 229 0
+ 392 000e 104B     		ldr	r3, .L33
+ 393 0010 0022     		mov	r2, #0
+ 394 0012 1A70     		strb	r2, [r3]
+ 230:.\BLEApplications.c **** 		
+ 231:.\BLEApplications.c **** 		/* Write the present notification status to the local variable */
+ 232:.\BLEApplications.c **** 		CCCDvalue[0] = startNotification;
+ 395              		.loc 1 232 0
+ 396 0014 0F4B     		ldr	r3, .L33+4
+ 397 0016 1A78     		ldrb	r2, [r3]
+ 398 0018 3B1C     		mov	r3, r7
+ 399 001a 0C33     		add	r3, r3, #12
+ 400 001c 1A70     		strb	r2, [r3]
+ 233:.\BLEApplications.c **** 		CCCDvalue[1] = 0x00;
+ 401              		.loc 1 233 0
+ 402 001e 3B1C     		mov	r3, r7
+ 403 0020 0C33     		add	r3, r3, #12
+ 404 0022 0022     		mov	r2, #0
+ 405 0024 5A70     		strb	r2, [r3, #1]
+ 234:.\BLEApplications.c **** 		
+ 235:.\BLEApplications.c **** 		/* Update CCCD handle with notification status data*/
+ 236:.\BLEApplications.c **** 		notificationCCCDhandle.attrHandle = CYBLE_AIR_QUALITY_DATA_AIR_QUALITY_DATA_CLIENT_CHARACTERISTIC
+ 406              		.loc 1 236 0
+ 407 0026 3B1C     		mov	r3, r7
+ 408 0028 0F22     		mov	r2, #15
+ 409 002a 1A81     		strh	r2, [r3, #8]
+ 237:.\BLEApplications.c **** 		notificationCCCDhandle.value.val = CCCDvalue;
+ 410              		.loc 1 237 0
+ 411 002c 3B1C     		mov	r3, r7
+ 412 002e 3A1C     		mov	r2, r7
+ 413 0030 0C32     		add	r2, r2, #12
+ 414 0032 1A60     		str	r2, [r3]
+ 238:.\BLEApplications.c **** 		notificationCCCDhandle.value.len = CCC_DATA_LEN;
+ 415              		.loc 1 238 0
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 13
+
+
+ 416 0034 3B1C     		mov	r3, r7
+ 417 0036 0222     		mov	r2, #2
+ 418 0038 9A80     		strh	r2, [r3, #4]
+ 239:.\BLEApplications.c **** 		
+ 240:.\BLEApplications.c **** 		/* Report data to BLE component for sending data when read by Central device */
+ 241:.\BLEApplications.c **** 		CyBle_GattsWriteAttributeValue(&notificationCCCDhandle, ZERO, &connectionHandle, CYBLE_GATT_DB_LO
+ 419              		.loc 1 241 0
+ 420 003a 3A1C     		mov	r2, r7
+ 421 003c 064B     		ldr	r3, .L33+8
+ 422 003e 101C     		mov	r0, r2
+ 423 0040 0021     		mov	r1, #0
+ 424 0042 1A1C     		mov	r2, r3
+ 425 0044 0023     		mov	r3, #0
+ 426 0046 FFF7FEFF 		bl	CyBle_GattsWriteAttributeValue
+ 427              	.L31:
+ 242:.\BLEApplications.c **** 	}
+ 243:.\BLEApplications.c **** }//void UpdateNotificationCCCD(void)
+ 428              		.loc 1 243 0
+ 429 004a BD46     		mov	sp, r7
+ 430 004c 04B0     		add	sp, sp, #16
+ 431              		@ sp needed
+ 432 004e 80BD     		pop	{r7, pc}
+ 433              	.L34:
+ 434              		.align	2
+ 435              	.L33:
+ 436 0050 00000000 		.word	updateNotificationCCCAttribute
+ 437 0054 00000000 		.word	startNotification
+ 438 0058 00000000 		.word	connectionHandle
+ 439              		.cfi_endproc
+ 440              	.LFE38:
+ 441              		.size	UpdateNotificationCCCD, .-UpdateNotificationCCCD
+ 442              		.text
+ 443              	.Letext0:
+ 444              		.file 2 ".\\Generated_Source\\PSoC4/cytypes.h"
+ 445              		.file 3 ".\\Generated_Source\\PSoC4/BLE_StackGap.h"
+ 446              		.file 4 ".\\Generated_Source\\PSoC4/BLE_StackGatt.h"
+ 447              		.file 5 ".\\Generated_Source\\PSoC4/BLE_StackGattServer.h"
+ 448              		.file 6 ".\\Generated_Source\\PSoC4/BLE_Stack.h"
+ 449              		.file 7 ".\\Generated_Source\\PSoC4/BLE_eventHandler.h"
+ 450              		.section	.debug_info,"",%progbits
+ 451              	.Ldebug_info0:
+ 452 0000 DA040000 		.4byte	0x4da
+ 453 0004 0400     		.2byte	0x4
+ 454 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 455 000a 04       		.byte	0x4
+ 456 000b 01       		.uleb128 0x1
+ 457 000c 32030000 		.4byte	.LASF113
+ 458 0010 01       		.byte	0x1
+ 459 0011 030B0000 		.4byte	.LASF114
+ 460 0015 C7030000 		.4byte	.LASF115
+ 461 0019 00000000 		.4byte	.Ldebug_ranges0+0
+ 462 001d 00000000 		.4byte	0
+ 463 0021 00000000 		.4byte	.Ldebug_line0
+ 464 0025 02       		.uleb128 0x2
+ 465 0026 01       		.byte	0x1
+ 466 0027 06       		.byte	0x6
+ 467 0028 86060000 		.4byte	.LASF0
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 14
+
+
+ 468 002c 02       		.uleb128 0x2
+ 469 002d 01       		.byte	0x1
+ 470 002e 08       		.byte	0x8
+ 471 002f 2F060000 		.4byte	.LASF1
+ 472 0033 02       		.uleb128 0x2
+ 473 0034 02       		.byte	0x2
+ 474 0035 05       		.byte	0x5
+ 475 0036 AE030000 		.4byte	.LASF2
+ 476 003a 02       		.uleb128 0x2
+ 477 003b 02       		.byte	0x2
+ 478 003c 07       		.byte	0x7
+ 479 003d 7B070000 		.4byte	.LASF3
+ 480 0041 02       		.uleb128 0x2
+ 481 0042 04       		.byte	0x4
+ 482 0043 05       		.byte	0x5
+ 483 0044 AE040000 		.4byte	.LASF4
+ 484 0048 02       		.uleb128 0x2
+ 485 0049 04       		.byte	0x4
+ 486 004a 07       		.byte	0x7
+ 487 004b 17070000 		.4byte	.LASF5
+ 488 004f 02       		.uleb128 0x2
+ 489 0050 08       		.byte	0x8
+ 490 0051 05       		.byte	0x5
+ 491 0052 5F040000 		.4byte	.LASF6
+ 492 0056 02       		.uleb128 0x2
+ 493 0057 08       		.byte	0x8
+ 494 0058 07       		.byte	0x7
+ 495 0059 6D040000 		.4byte	.LASF7
+ 496 005d 03       		.uleb128 0x3
+ 497 005e 04       		.byte	0x4
+ 498 005f 05       		.byte	0x5
+ 499 0060 696E7400 		.ascii	"int\000"
+ 500 0064 02       		.uleb128 0x2
+ 501 0065 04       		.byte	0x4
+ 502 0066 07       		.byte	0x7
+ 503 0067 EF060000 		.4byte	.LASF8
+ 504 006b 04       		.uleb128 0x4
+ 505 006c 03060000 		.4byte	.LASF9
+ 506 0070 02       		.byte	0x2
+ 507 0071 A1       		.byte	0xa1
+ 508 0072 2C000000 		.4byte	0x2c
+ 509 0076 04       		.uleb128 0x4
+ 510 0077 5F020000 		.4byte	.LASF10
+ 511 007b 02       		.byte	0x2
+ 512 007c A2       		.byte	0xa2
+ 513 007d 3A000000 		.4byte	0x3a
+ 514 0081 04       		.uleb128 0x4
+ 515 0082 7E080000 		.4byte	.LASF11
+ 516 0086 02       		.byte	0x2
+ 517 0087 A3       		.byte	0xa3
+ 518 0088 48000000 		.4byte	0x48
+ 519 008c 02       		.uleb128 0x2
+ 520 008d 04       		.byte	0x4
+ 521 008e 04       		.byte	0x4
+ 522 008f C1030000 		.4byte	.LASF12
+ 523 0093 02       		.uleb128 0x2
+ 524 0094 08       		.byte	0x8
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 15
+
+
+ 525 0095 04       		.byte	0x4
+ 526 0096 D1080000 		.4byte	.LASF13
+ 527 009a 02       		.uleb128 0x2
+ 528 009b 01       		.byte	0x1
+ 529 009c 08       		.byte	0x8
+ 530 009d B7070000 		.4byte	.LASF14
+ 531 00a1 02       		.uleb128 0x2
+ 532 00a2 04       		.byte	0x4
+ 533 00a3 07       		.byte	0x7
+ 534 00a4 5D010000 		.4byte	.LASF15
+ 535 00a8 05       		.uleb128 0x5
+ 536 00a9 04       		.byte	0x4
+ 537 00aa 06       		.uleb128 0x6
+ 538 00ab 01       		.byte	0x1
+ 539 00ac 06       		.byte	0x6
+ 540 00ad 52       		.byte	0x52
+ 541 00ae 1A020000 		.4byte	0x21a
+ 542 00b2 07       		.uleb128 0x7
+ 543 00b3 DC020000 		.4byte	.LASF16
+ 544 00b7 00       		.sleb128 0
+ 545 00b8 07       		.uleb128 0x7
+ 546 00b9 FF010000 		.4byte	.LASF17
+ 547 00bd 01       		.sleb128 1
+ 548 00be 07       		.uleb128 0x7
+ 549 00bf 3B0A0000 		.4byte	.LASF18
+ 550 00c3 02       		.sleb128 2
+ 551 00c4 07       		.uleb128 0x7
+ 552 00c5 4C090000 		.4byte	.LASF19
+ 553 00c9 03       		.sleb128 3
+ 554 00ca 07       		.uleb128 0x7
+ 555 00cb C9010000 		.4byte	.LASF20
+ 556 00cf 04       		.sleb128 4
+ 557 00d0 07       		.uleb128 0x7
+ 558 00d1 66050000 		.4byte	.LASF21
+ 559 00d5 05       		.sleb128 5
+ 560 00d6 07       		.uleb128 0x7
+ 561 00d7 AA090000 		.4byte	.LASF22
+ 562 00db 20       		.sleb128 32
+ 563 00dc 07       		.uleb128 0x7
+ 564 00dd 29070000 		.4byte	.LASF23
+ 565 00e1 21       		.sleb128 33
+ 566 00e2 07       		.uleb128 0x7
+ 567 00e3 14000000 		.4byte	.LASF24
+ 568 00e7 22       		.sleb128 34
+ 569 00e8 07       		.uleb128 0x7
+ 570 00e9 A0050000 		.4byte	.LASF25
+ 571 00ed 23       		.sleb128 35
+ 572 00ee 07       		.uleb128 0x7
+ 573 00ef D3060000 		.4byte	.LASF26
+ 574 00f3 24       		.sleb128 36
+ 575 00f4 07       		.uleb128 0x7
+ 576 00f5 19010000 		.4byte	.LASF27
+ 577 00f9 25       		.sleb128 37
+ 578 00fa 07       		.uleb128 0x7
+ 579 00fb 1D050000 		.4byte	.LASF28
+ 580 00ff 26       		.sleb128 38
+ 581 0100 07       		.uleb128 0x7
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 16
+
+
+ 582 0101 E8040000 		.4byte	.LASF29
+ 583 0105 27       		.sleb128 39
+ 584 0106 07       		.uleb128 0x7
+ 585 0107 BE000000 		.4byte	.LASF30
+ 586 010b 28       		.sleb128 40
+ 587 010c 07       		.uleb128 0x7
+ 588 010d A6010000 		.4byte	.LASF31
+ 589 0111 29       		.sleb128 41
+ 590 0112 07       		.uleb128 0x7
+ 591 0113 8E070000 		.4byte	.LASF32
+ 592 0117 2A       		.sleb128 42
+ 593 0118 07       		.uleb128 0x7
+ 594 0119 590A0000 		.4byte	.LASF33
+ 595 011d 2B       		.sleb128 43
+ 596 011e 07       		.uleb128 0x7
+ 597 011f 78020000 		.4byte	.LASF34
+ 598 0123 2C       		.sleb128 44
+ 599 0124 07       		.uleb128 0x7
+ 600 0125 80000000 		.4byte	.LASF35
+ 601 0129 C000     		.sleb128 64
+ 602 012b 07       		.uleb128 0x7
+ 603 012c FC060000 		.4byte	.LASF36
+ 604 0130 C100     		.sleb128 65
+ 605 0132 07       		.uleb128 0x7
+ 606 0133 33010000 		.4byte	.LASF37
+ 607 0137 C200     		.sleb128 66
+ 608 0139 07       		.uleb128 0x7
+ 609 013a 28020000 		.4byte	.LASF38
+ 610 013e C300     		.sleb128 67
+ 611 0140 07       		.uleb128 0x7
+ 612 0141 1D0A0000 		.4byte	.LASF39
+ 613 0145 C400     		.sleb128 68
+ 614 0147 07       		.uleb128 0x7
+ 615 0148 D8090000 		.4byte	.LASF40
+ 616 014c C500     		.sleb128 69
+ 617 014e 07       		.uleb128 0x7
+ 618 014f DE010000 		.4byte	.LASF41
+ 619 0153 C600     		.sleb128 70
+ 620 0155 07       		.uleb128 0x7
+ 621 0156 68060000 		.4byte	.LASF42
+ 622 015a C700     		.sleb128 71
+ 623 015c 07       		.uleb128 0x7
+ 624 015d AC060000 		.4byte	.LASF43
+ 625 0161 C800     		.sleb128 72
+ 626 0163 07       		.uleb128 0x7
+ 627 0164 28040000 		.4byte	.LASF44
+ 628 0168 C900     		.sleb128 73
+ 629 016a 07       		.uleb128 0x7
+ 630 016b 29080000 		.4byte	.LASF45
+ 631 016f CA00     		.sleb128 74
+ 632 0171 07       		.uleb128 0x7
+ 633 0172 9C020000 		.4byte	.LASF46
+ 634 0176 CB00     		.sleb128 75
+ 635 0178 07       		.uleb128 0x7
+ 636 0179 92060000 		.4byte	.LASF47
+ 637 017d CC00     		.sleb128 76
+ 638 017f 07       		.uleb128 0x7
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 17
+
+
+ 639 0180 66000000 		.4byte	.LASF48
+ 640 0184 CD00     		.sleb128 77
+ 641 0186 07       		.uleb128 0x7
+ 642 0187 FF090000 		.4byte	.LASF49
+ 643 018b CE00     		.sleb128 78
+ 644 018d 07       		.uleb128 0x7
+ 645 018e 3D060000 		.4byte	.LASF50
+ 646 0192 CF00     		.sleb128 79
+ 647 0194 07       		.uleb128 0x7
+ 648 0195 8F0A0000 		.4byte	.LASF51
+ 649 0199 D000     		.sleb128 80
+ 650 019b 07       		.uleb128 0x7
+ 651 019c 5F080000 		.4byte	.LASF52
+ 652 01a0 D100     		.sleb128 81
+ 653 01a2 07       		.uleb128 0x7
+ 654 01a3 45050000 		.4byte	.LASF53
+ 655 01a7 D200     		.sleb128 82
+ 656 01a9 07       		.uleb128 0x7
+ 657 01aa B7040000 		.4byte	.LASF54
+ 658 01ae D300     		.sleb128 83
+ 659 01b0 07       		.uleb128 0x7
+ 660 01b1 BB020000 		.4byte	.LASF55
+ 661 01b5 D400     		.sleb128 84
+ 662 01b7 07       		.uleb128 0x7
+ 663 01b8 DF0A0000 		.4byte	.LASF56
+ 664 01bc D500     		.sleb128 85
+ 665 01be 07       		.uleb128 0x7
+ 666 01bf 09060000 		.4byte	.LASF57
+ 667 01c3 F000     		.sleb128 112
+ 668 01c5 07       		.uleb128 0x7
+ 669 01c6 84090000 		.4byte	.LASF58
+ 670 01ca F100     		.sleb128 113
+ 671 01cc 07       		.uleb128 0x7
+ 672 01cd D9050000 		.4byte	.LASF59
+ 673 01d1 F200     		.sleb128 114
+ 674 01d3 07       		.uleb128 0x7
+ 675 01d4 F3020000 		.4byte	.LASF60
+ 676 01d8 F300     		.sleb128 115
+ 677 01da 07       		.uleb128 0x7
+ 678 01db 2E090000 		.4byte	.LASF61
+ 679 01df F400     		.sleb128 116
+ 680 01e1 07       		.uleb128 0x7
+ 681 01e2 4E070000 		.4byte	.LASF62
+ 682 01e6 F500     		.sleb128 117
+ 683 01e8 07       		.uleb128 0x7
+ 684 01e9 11030000 		.4byte	.LASF63
+ 685 01ed F600     		.sleb128 118
+ 686 01ef 07       		.uleb128 0x7
+ 687 01f0 65090000 		.4byte	.LASF64
+ 688 01f4 F700     		.sleb128 119
+ 689 01f6 07       		.uleb128 0x7
+ 690 01f7 A3080000 		.4byte	.LASF65
+ 691 01fb F800     		.sleb128 120
+ 692 01fd 07       		.uleb128 0x7
+ 693 01fe 0B090000 		.4byte	.LASF66
+ 694 0202 F900     		.sleb128 121
+ 695 0204 07       		.uleb128 0x7
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 18
+
+
+ 696 0205 9A000000 		.4byte	.LASF67
+ 697 0209 FA00     		.sleb128 122
+ 698 020b 07       		.uleb128 0x7
+ 699 020c 85080000 		.4byte	.LASF68
+ 700 0210 FA01     		.sleb128 250
+ 701 0212 07       		.uleb128 0x7
+ 702 0213 F5050000 		.4byte	.LASF69
+ 703 0217 FF01     		.sleb128 255
+ 704 0219 00       		.byte	0
+ 705 021a 08       		.uleb128 0x8
+ 706 021b 04       		.byte	0x4
+ 707 021c 6B000000 		.4byte	0x6b
+ 708 0220 09       		.uleb128 0x9
+ 709 0221 08       		.byte	0x8
+ 710 0222 03       		.byte	0x3
+ 711 0223 8F02     		.2byte	0x28f
+ 712 0225 5E020000 		.4byte	0x25e
+ 713 0229 0A       		.uleb128 0xa
+ 714 022a 6F070000 		.4byte	.LASF70
+ 715 022e 03       		.byte	0x3
+ 716 022f 9602     		.2byte	0x296
+ 717 0231 76000000 		.4byte	0x76
+ 718 0235 00       		.byte	0
+ 719 0236 0A       		.uleb128 0xa
+ 720 0237 4D0A0000 		.4byte	.LASF71
+ 721 023b 03       		.byte	0x3
+ 722 023c 9D02     		.2byte	0x29d
+ 723 023e 76000000 		.4byte	0x76
+ 724 0242 02       		.byte	0x2
+ 725 0243 0A       		.uleb128 0xa
+ 726 0244 51010000 		.4byte	.LASF72
+ 727 0248 03       		.byte	0x3
+ 728 0249 A202     		.2byte	0x2a2
+ 729 024b 76000000 		.4byte	0x76
+ 730 024f 04       		.byte	0x4
+ 731 0250 0A       		.uleb128 0xa
+ 732 0251 170B0000 		.4byte	.LASF73
+ 733 0255 03       		.byte	0x3
+ 734 0256 A802     		.2byte	0x2a8
+ 735 0258 76000000 		.4byte	0x76
+ 736 025c 06       		.byte	0x6
+ 737 025d 00       		.byte	0
+ 738 025e 0B       		.uleb128 0xb
+ 739 025f 41040000 		.4byte	.LASF74
+ 740 0263 03       		.byte	0x3
+ 741 0264 AA02     		.2byte	0x2aa
+ 742 0266 20020000 		.4byte	0x220
+ 743 026a 0B       		.uleb128 0xb
+ 744 026b AE0A0000 		.4byte	.LASF75
+ 745 026f 04       		.byte	0x4
+ 746 0270 4A01     		.2byte	0x14a
+ 747 0272 76000000 		.4byte	0x76
+ 748 0276 09       		.uleb128 0x9
+ 749 0277 02       		.byte	0x2
+ 750 0278 04       		.byte	0x4
+ 751 0279 4D01     		.2byte	0x14d
+ 752 027b 9A020000 		.4byte	0x29a
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 19
+
+
+ 753 027f 0A       		.uleb128 0xa
+ 754 0280 B8030000 		.4byte	.LASF76
+ 755 0284 04       		.byte	0x4
+ 756 0285 5001     		.2byte	0x150
+ 757 0287 6B000000 		.4byte	0x6b
+ 758 028b 00       		.byte	0
+ 759 028c 0A       		.uleb128 0xa
+ 760 028d 250B0000 		.4byte	.LASF77
+ 761 0291 04       		.byte	0x4
+ 762 0292 5301     		.2byte	0x153
+ 763 0294 6B000000 		.4byte	0x6b
+ 764 0298 01       		.byte	0x1
+ 765 0299 00       		.byte	0
+ 766 029a 0B       		.uleb128 0xb
+ 767 029b D8080000 		.4byte	.LASF78
+ 768 029f 04       		.byte	0x4
+ 769 02a0 5501     		.2byte	0x155
+ 770 02a2 76020000 		.4byte	0x276
+ 771 02a6 09       		.uleb128 0x9
+ 772 02a7 08       		.byte	0x8
+ 773 02a8 04       		.byte	0x4
+ 774 02a9 6A01     		.2byte	0x16a
+ 775 02ab D7020000 		.4byte	0x2d7
+ 776 02af 0C       		.uleb128 0xc
+ 777 02b0 76616C00 		.ascii	"val\000"
+ 778 02b4 04       		.byte	0x4
+ 779 02b5 6D01     		.2byte	0x16d
+ 780 02b7 1A020000 		.4byte	0x21a
+ 781 02bb 00       		.byte	0
+ 782 02bc 0C       		.uleb128 0xc
+ 783 02bd 6C656E00 		.ascii	"len\000"
+ 784 02c1 04       		.byte	0x4
+ 785 02c2 7001     		.2byte	0x170
+ 786 02c4 76000000 		.4byte	0x76
+ 787 02c8 04       		.byte	0x4
+ 788 02c9 0A       		.uleb128 0xa
+ 789 02ca CE090000 		.4byte	.LASF79
+ 790 02ce 04       		.byte	0x4
+ 791 02cf 7401     		.2byte	0x174
+ 792 02d1 76000000 		.4byte	0x76
+ 793 02d5 06       		.byte	0x6
+ 794 02d6 00       		.byte	0
+ 795 02d7 0B       		.uleb128 0xb
+ 796 02d8 BC070000 		.4byte	.LASF80
+ 797 02dc 04       		.byte	0x4
+ 798 02dd 7601     		.2byte	0x176
+ 799 02df A6020000 		.4byte	0x2a6
+ 800 02e3 09       		.uleb128 0x9
+ 801 02e4 0C       		.byte	0xc
+ 802 02e5 04       		.byte	0x4
+ 803 02e6 7901     		.2byte	0x179
+ 804 02e8 07030000 		.4byte	0x307
+ 805 02ec 0A       		.uleb128 0xa
+ 806 02ed 890A0000 		.4byte	.LASF81
+ 807 02f1 04       		.byte	0x4
+ 808 02f2 7C01     		.2byte	0x17c
+ 809 02f4 D7020000 		.4byte	0x2d7
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 20
+
+
+ 810 02f8 00       		.byte	0
+ 811 02f9 0A       		.uleb128 0xa
+ 812 02fa C6080000 		.4byte	.LASF82
+ 813 02fe 04       		.byte	0x4
+ 814 02ff 7F01     		.2byte	0x17f
+ 815 0301 6A020000 		.4byte	0x26a
+ 816 0305 08       		.byte	0x8
+ 817 0306 00       		.byte	0
+ 818 0307 0B       		.uleb128 0xb
+ 819 0308 EC080000 		.4byte	.LASF83
+ 820 030c 04       		.byte	0x4
+ 821 030d 8101     		.2byte	0x181
+ 822 030f E3020000 		.4byte	0x2e3
+ 823 0313 04       		.uleb128 0x4
+ 824 0314 8F040000 		.4byte	.LASF84
+ 825 0318 05       		.byte	0x5
+ 826 0319 2D       		.byte	0x2d
+ 827 031a 07030000 		.4byte	0x307
+ 828 031e 0D       		.uleb128 0xd
+ 829 031f 10       		.byte	0x10
+ 830 0320 05       		.byte	0x5
+ 831 0321 52       		.byte	0x52
+ 832 0322 3F030000 		.4byte	0x33f
+ 833 0326 0E       		.uleb128 0xe
+ 834 0327 66010000 		.4byte	.LASF85
+ 835 032b 05       		.byte	0x5
+ 836 032c 55       		.byte	0x55
+ 837 032d 9A020000 		.4byte	0x29a
+ 838 0331 00       		.byte	0
+ 839 0332 0E       		.uleb128 0xe
+ 840 0333 1B080000 		.4byte	.LASF86
+ 841 0337 05       		.byte	0x5
+ 842 0338 58       		.byte	0x58
+ 843 0339 07030000 		.4byte	0x307
+ 844 033d 04       		.byte	0x4
+ 845 033e 00       		.byte	0
+ 846 033f 04       		.uleb128 0x4
+ 847 0340 82050000 		.4byte	.LASF87
+ 848 0344 05       		.byte	0x5
+ 849 0345 5A       		.byte	0x5a
+ 850 0346 1E030000 		.4byte	0x31e
+ 851 034a 0F       		.uleb128 0xf
+ 852 034b 01       		.byte	0x1
+ 853 034c 07       		.byte	0x7
+ 854 034d F004     		.2byte	0x4f0
+ 855 034f 72030000 		.4byte	0x372
+ 856 0353 07       		.uleb128 0x7
+ 857 0354 00000000 		.4byte	.LASF88
+ 858 0358 00       		.sleb128 0
+ 859 0359 07       		.uleb128 0x7
+ 860 035a 4D000000 		.4byte	.LASF89
+ 861 035e 01       		.sleb128 1
+ 862 035f 07       		.uleb128 0x7
+ 863 0360 12020000 		.4byte	.LASF90
+ 864 0364 02       		.sleb128 2
+ 865 0365 07       		.uleb128 0x7
+ 866 0366 47080000 		.4byte	.LASF91
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 21
+
+
+ 867 036a 03       		.sleb128 3
+ 868 036b 07       		.uleb128 0x7
+ 869 036c 02080000 		.4byte	.LASF92
+ 870 0370 04       		.sleb128 4
+ 871 0371 00       		.byte	0
+ 872 0372 0B       		.uleb128 0xb
+ 873 0373 40070000 		.4byte	.LASF93
+ 874 0377 07       		.byte	0x7
+ 875 0378 FE04     		.2byte	0x4fe
+ 876 037a 4A030000 		.4byte	0x34a
+ 877 037e 10       		.uleb128 0x10
+ 878 037f 71010000 		.4byte	.LASF96
+ 879 0383 01       		.byte	0x1
+ 880 0384 3A       		.byte	0x3a
+ 881 0385 00000000 		.4byte	.LFB35
+ 882 0389 08010000 		.4byte	.LFE35-.LFB35
+ 883 038d 01       		.uleb128 0x1
+ 884 038e 9C       		.byte	0x9c
+ 885 038f BE030000 		.4byte	0x3be
+ 886 0393 11       		.uleb128 0x11
+ 887 0394 C3010000 		.4byte	.LASF94
+ 888 0398 01       		.byte	0x1
+ 889 0399 3A       		.byte	0x3a
+ 890 039a 81000000 		.4byte	0x81
+ 891 039e 02       		.uleb128 0x2
+ 892 039f 91       		.byte	0x91
+ 893 03a0 6C       		.sleb128 -20
+ 894 03a1 11       		.uleb128 0x11
+ 895 03a2 CA0A0000 		.4byte	.LASF95
+ 896 03a6 01       		.byte	0x1
+ 897 03a7 3A       		.byte	0x3a
+ 898 03a8 A8000000 		.4byte	0xa8
+ 899 03ac 02       		.uleb128 0x2
+ 900 03ad 91       		.byte	0x91
+ 901 03ae 68       		.sleb128 -24
+ 902 03af 12       		.uleb128 0x12
+ 903 03b0 9B010000 		.4byte	.LASF99
+ 904 03b4 01       		.byte	0x1
+ 905 03b5 3C       		.byte	0x3c
+ 906 03b6 BE030000 		.4byte	0x3be
+ 907 03ba 02       		.uleb128 0x2
+ 908 03bb 91       		.byte	0x91
+ 909 03bc 74       		.sleb128 -12
+ 910 03bd 00       		.byte	0
+ 911 03be 08       		.uleb128 0x8
+ 912 03bf 04       		.byte	0x4
+ 913 03c0 3F030000 		.4byte	0x33f
+ 914 03c4 10       		.uleb128 0x10
+ 915 03c5 46020000 		.4byte	.LASF97
+ 916 03c9 01       		.byte	0x1
+ 917 03ca B7       		.byte	0xb7
+ 918 03cb 00000000 		.4byte	.LFB36
+ 919 03cf 44000000 		.4byte	.LFE36-.LFB36
+ 920 03d3 01       		.uleb128 0x1
+ 921 03d4 9C       		.byte	0x9c
+ 922 03d5 F6030000 		.4byte	0x3f6
+ 923 03d9 11       		.uleb128 0x11
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 22
+
+
+ 924 03da D50A0000 		.4byte	.LASF98
+ 925 03de 01       		.byte	0x1
+ 926 03df B7       		.byte	0xb7
+ 927 03e0 1A020000 		.4byte	0x21a
+ 928 03e4 02       		.uleb128 0x2
+ 929 03e5 91       		.byte	0x91
+ 930 03e6 64       		.sleb128 -28
+ 931 03e7 12       		.uleb128 0x12
+ 932 03e8 C6050000 		.4byte	.LASF100
+ 933 03ec 01       		.byte	0x1
+ 934 03ed BA       		.byte	0xba
+ 935 03ee 13030000 		.4byte	0x313
+ 936 03f2 02       		.uleb128 0x2
+ 937 03f3 91       		.byte	0x91
+ 938 03f4 6C       		.sleb128 -20
+ 939 03f5 00       		.byte	0
+ 940 03f6 13       		.uleb128 0x13
+ 941 03f7 07050000 		.4byte	.LASF116
+ 942 03fb 01       		.byte	0x1
+ 943 03fc CA       		.byte	0xca
+ 944 03fd 00000000 		.4byte	.LFB37
+ 945 0401 3C000000 		.4byte	.LFE37-.LFB37
+ 946 0405 01       		.uleb128 0x1
+ 947 0406 9C       		.byte	0x9c
+ 948 0407 10       		.uleb128 0x10
+ 949 0408 CF070000 		.4byte	.LASF101
+ 950 040c 01       		.byte	0x1
+ 951 040d D9       		.byte	0xd9
+ 952 040e 00000000 		.4byte	.LFB38
+ 953 0412 5C000000 		.4byte	.LFE38-.LFB38
+ 954 0416 01       		.uleb128 0x1
+ 955 0417 9C       		.byte	0x9c
+ 956 0418 39040000 		.4byte	0x439
+ 957 041c 12       		.uleb128 0x12
+ 958 041d F0000000 		.4byte	.LASF102
+ 959 0421 01       		.byte	0x1
+ 960 0422 DC       		.byte	0xdc
+ 961 0423 39040000 		.4byte	0x439
+ 962 0427 02       		.uleb128 0x2
+ 963 0428 91       		.byte	0x91
+ 964 0429 74       		.sleb128 -12
+ 965 042a 12       		.uleb128 0x12
+ 966 042b 84010000 		.4byte	.LASF103
+ 967 042f 01       		.byte	0x1
+ 968 0430 DF       		.byte	0xdf
+ 969 0431 07030000 		.4byte	0x307
+ 970 0435 02       		.uleb128 0x2
+ 971 0436 91       		.byte	0x91
+ 972 0437 68       		.sleb128 -24
+ 973 0438 00       		.byte	0
+ 974 0439 14       		.uleb128 0x14
+ 975 043a 6B000000 		.4byte	0x6b
+ 976 043e 49040000 		.4byte	0x449
+ 977 0442 15       		.uleb128 0x15
+ 978 0443 A1000000 		.4byte	0xa1
+ 979 0447 01       		.byte	0x1
+ 980 0448 00       		.byte	0
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 23
+
+
+ 981 0449 12       		.uleb128 0x12
+ 982 044a E6070000 		.4byte	.LASF104
+ 983 044e 01       		.byte	0x1
+ 984 044f 24       		.byte	0x24
+ 985 0450 6B000000 		.4byte	0x6b
+ 986 0454 05       		.uleb128 0x5
+ 987 0455 03       		.byte	0x3
+ 988 0456 00000000 		.4byte	isConnectionUpdateRequested
+ 989 045a 12       		.uleb128 0x12
+ 990 045b D8040000 		.4byte	.LASF105
+ 991 045f 01       		.byte	0x1
+ 992 0460 29       		.byte	0x29
+ 993 0461 5E020000 		.4byte	0x25e
+ 994 0465 05       		.uleb128 0x5
+ 995 0466 03       		.byte	0x3
+ 996 0467 04000000 		.4byte	ConnectionParam
+ 997 046b 16       		.uleb128 0x16
+ 998 046c 5C060000 		.4byte	.LASF106
+ 999 0470 07       		.byte	0x7
+ 1000 0471 6406     		.2byte	0x664
+ 1001 0473 72030000 		.4byte	0x372
+ 1002 0477 17       		.uleb128 0x17
+ 1003 0478 E0000000 		.4byte	.LASF107
+ 1004 047c 01       		.byte	0x1
+ 1005 047d 11       		.byte	0x11
+ 1006 047e 6B000000 		.4byte	0x6b
+ 1007 0482 05       		.uleb128 0x5
+ 1008 0483 03       		.byte	0x3
+ 1009 0484 00000000 		.4byte	deviceConnected
+ 1010 0488 17       		.uleb128 0x17
+ 1011 0489 66020000 		.4byte	.LASF108
+ 1012 048d 01       		.byte	0x1
+ 1013 048e 16       		.byte	0x16
+ 1014 048f 6B000000 		.4byte	0x6b
+ 1015 0493 05       		.uleb128 0x5
+ 1016 0494 03       		.byte	0x3
+ 1017 0495 00000000 		.4byte	startNotification
+ 1018 0499 17       		.uleb128 0x17
+ 1019 049a 780A0000 		.4byte	.LASF109
+ 1020 049e 01       		.byte	0x1
+ 1021 049f 19       		.byte	0x19
+ 1022 04a0 9A020000 		.4byte	0x29a
+ 1023 04a4 05       		.uleb128 0x5
+ 1024 04a5 03       		.byte	0x3
+ 1025 04a6 00000000 		.4byte	connectionHandle
+ 1026 04aa 17       		.uleb128 0x17
+ 1027 04ab 38000000 		.4byte	.LASF110
+ 1028 04af 01       		.byte	0x1
+ 1029 04b0 1C       		.byte	0x1c
+ 1030 04b1 6B000000 		.4byte	0x6b
+ 1031 04b5 05       		.uleb128 0x5
+ 1032 04b6 03       		.byte	0x3
+ 1033 04b7 00000000 		.4byte	restartAdvertisement
+ 1034 04bb 17       		.uleb128 0x17
+ 1035 04bc FA000000 		.4byte	.LASF111
+ 1036 04c0 01       		.byte	0x1
+ 1037 04c1 20       		.byte	0x20
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 24
+
+
+ 1038 04c2 6B000000 		.4byte	0x6b
+ 1039 04c6 05       		.uleb128 0x5
+ 1040 04c7 03       		.byte	0x3
+ 1041 04c8 00000000 		.4byte	updateNotificationCCCAttribute
+ 1042 04cc 17       		.uleb128 0x17
+ 1043 04cd 84040000 		.4byte	.LASF112
+ 1044 04d1 01       		.byte	0x1
+ 1045 04d2 33       		.byte	0x33
+ 1046 04d3 6B000000 		.4byte	0x6b
+ 1047 04d7 05       		.uleb128 0x5
+ 1048 04d8 03       		.byte	0x3
+ 1049 04d9 00000000 		.4byte	busyStatus
+ 1050 04dd 00       		.byte	0
+ 1051              		.section	.debug_abbrev,"",%progbits
+ 1052              	.Ldebug_abbrev0:
+ 1053 0000 01       		.uleb128 0x1
+ 1054 0001 11       		.uleb128 0x11
+ 1055 0002 01       		.byte	0x1
+ 1056 0003 25       		.uleb128 0x25
+ 1057 0004 0E       		.uleb128 0xe
+ 1058 0005 13       		.uleb128 0x13
+ 1059 0006 0B       		.uleb128 0xb
+ 1060 0007 03       		.uleb128 0x3
+ 1061 0008 0E       		.uleb128 0xe
+ 1062 0009 1B       		.uleb128 0x1b
+ 1063 000a 0E       		.uleb128 0xe
+ 1064 000b 55       		.uleb128 0x55
+ 1065 000c 17       		.uleb128 0x17
+ 1066 000d 11       		.uleb128 0x11
+ 1067 000e 01       		.uleb128 0x1
+ 1068 000f 10       		.uleb128 0x10
+ 1069 0010 17       		.uleb128 0x17
+ 1070 0011 00       		.byte	0
+ 1071 0012 00       		.byte	0
+ 1072 0013 02       		.uleb128 0x2
+ 1073 0014 24       		.uleb128 0x24
+ 1074 0015 00       		.byte	0
+ 1075 0016 0B       		.uleb128 0xb
+ 1076 0017 0B       		.uleb128 0xb
+ 1077 0018 3E       		.uleb128 0x3e
+ 1078 0019 0B       		.uleb128 0xb
+ 1079 001a 03       		.uleb128 0x3
+ 1080 001b 0E       		.uleb128 0xe
+ 1081 001c 00       		.byte	0
+ 1082 001d 00       		.byte	0
+ 1083 001e 03       		.uleb128 0x3
+ 1084 001f 24       		.uleb128 0x24
+ 1085 0020 00       		.byte	0
+ 1086 0021 0B       		.uleb128 0xb
+ 1087 0022 0B       		.uleb128 0xb
+ 1088 0023 3E       		.uleb128 0x3e
+ 1089 0024 0B       		.uleb128 0xb
+ 1090 0025 03       		.uleb128 0x3
+ 1091 0026 08       		.uleb128 0x8
+ 1092 0027 00       		.byte	0
+ 1093 0028 00       		.byte	0
+ 1094 0029 04       		.uleb128 0x4
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 25
+
+
+ 1095 002a 16       		.uleb128 0x16
+ 1096 002b 00       		.byte	0
+ 1097 002c 03       		.uleb128 0x3
+ 1098 002d 0E       		.uleb128 0xe
+ 1099 002e 3A       		.uleb128 0x3a
+ 1100 002f 0B       		.uleb128 0xb
+ 1101 0030 3B       		.uleb128 0x3b
+ 1102 0031 0B       		.uleb128 0xb
+ 1103 0032 49       		.uleb128 0x49
+ 1104 0033 13       		.uleb128 0x13
+ 1105 0034 00       		.byte	0
+ 1106 0035 00       		.byte	0
+ 1107 0036 05       		.uleb128 0x5
+ 1108 0037 0F       		.uleb128 0xf
+ 1109 0038 00       		.byte	0
+ 1110 0039 0B       		.uleb128 0xb
+ 1111 003a 0B       		.uleb128 0xb
+ 1112 003b 00       		.byte	0
+ 1113 003c 00       		.byte	0
+ 1114 003d 06       		.uleb128 0x6
+ 1115 003e 04       		.uleb128 0x4
+ 1116 003f 01       		.byte	0x1
+ 1117 0040 0B       		.uleb128 0xb
+ 1118 0041 0B       		.uleb128 0xb
+ 1119 0042 3A       		.uleb128 0x3a
+ 1120 0043 0B       		.uleb128 0xb
+ 1121 0044 3B       		.uleb128 0x3b
+ 1122 0045 0B       		.uleb128 0xb
+ 1123 0046 01       		.uleb128 0x1
+ 1124 0047 13       		.uleb128 0x13
+ 1125 0048 00       		.byte	0
+ 1126 0049 00       		.byte	0
+ 1127 004a 07       		.uleb128 0x7
+ 1128 004b 28       		.uleb128 0x28
+ 1129 004c 00       		.byte	0
+ 1130 004d 03       		.uleb128 0x3
+ 1131 004e 0E       		.uleb128 0xe
+ 1132 004f 1C       		.uleb128 0x1c
+ 1133 0050 0D       		.uleb128 0xd
+ 1134 0051 00       		.byte	0
+ 1135 0052 00       		.byte	0
+ 1136 0053 08       		.uleb128 0x8
+ 1137 0054 0F       		.uleb128 0xf
+ 1138 0055 00       		.byte	0
+ 1139 0056 0B       		.uleb128 0xb
+ 1140 0057 0B       		.uleb128 0xb
+ 1141 0058 49       		.uleb128 0x49
+ 1142 0059 13       		.uleb128 0x13
+ 1143 005a 00       		.byte	0
+ 1144 005b 00       		.byte	0
+ 1145 005c 09       		.uleb128 0x9
+ 1146 005d 13       		.uleb128 0x13
+ 1147 005e 01       		.byte	0x1
+ 1148 005f 0B       		.uleb128 0xb
+ 1149 0060 0B       		.uleb128 0xb
+ 1150 0061 3A       		.uleb128 0x3a
+ 1151 0062 0B       		.uleb128 0xb
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 26
+
+
+ 1152 0063 3B       		.uleb128 0x3b
+ 1153 0064 05       		.uleb128 0x5
+ 1154 0065 01       		.uleb128 0x1
+ 1155 0066 13       		.uleb128 0x13
+ 1156 0067 00       		.byte	0
+ 1157 0068 00       		.byte	0
+ 1158 0069 0A       		.uleb128 0xa
+ 1159 006a 0D       		.uleb128 0xd
+ 1160 006b 00       		.byte	0
+ 1161 006c 03       		.uleb128 0x3
+ 1162 006d 0E       		.uleb128 0xe
+ 1163 006e 3A       		.uleb128 0x3a
+ 1164 006f 0B       		.uleb128 0xb
+ 1165 0070 3B       		.uleb128 0x3b
+ 1166 0071 05       		.uleb128 0x5
+ 1167 0072 49       		.uleb128 0x49
+ 1168 0073 13       		.uleb128 0x13
+ 1169 0074 38       		.uleb128 0x38
+ 1170 0075 0B       		.uleb128 0xb
+ 1171 0076 00       		.byte	0
+ 1172 0077 00       		.byte	0
+ 1173 0078 0B       		.uleb128 0xb
+ 1174 0079 16       		.uleb128 0x16
+ 1175 007a 00       		.byte	0
+ 1176 007b 03       		.uleb128 0x3
+ 1177 007c 0E       		.uleb128 0xe
+ 1178 007d 3A       		.uleb128 0x3a
+ 1179 007e 0B       		.uleb128 0xb
+ 1180 007f 3B       		.uleb128 0x3b
+ 1181 0080 05       		.uleb128 0x5
+ 1182 0081 49       		.uleb128 0x49
+ 1183 0082 13       		.uleb128 0x13
+ 1184 0083 00       		.byte	0
+ 1185 0084 00       		.byte	0
+ 1186 0085 0C       		.uleb128 0xc
+ 1187 0086 0D       		.uleb128 0xd
+ 1188 0087 00       		.byte	0
+ 1189 0088 03       		.uleb128 0x3
+ 1190 0089 08       		.uleb128 0x8
+ 1191 008a 3A       		.uleb128 0x3a
+ 1192 008b 0B       		.uleb128 0xb
+ 1193 008c 3B       		.uleb128 0x3b
+ 1194 008d 05       		.uleb128 0x5
+ 1195 008e 49       		.uleb128 0x49
+ 1196 008f 13       		.uleb128 0x13
+ 1197 0090 38       		.uleb128 0x38
+ 1198 0091 0B       		.uleb128 0xb
+ 1199 0092 00       		.byte	0
+ 1200 0093 00       		.byte	0
+ 1201 0094 0D       		.uleb128 0xd
+ 1202 0095 13       		.uleb128 0x13
+ 1203 0096 01       		.byte	0x1
+ 1204 0097 0B       		.uleb128 0xb
+ 1205 0098 0B       		.uleb128 0xb
+ 1206 0099 3A       		.uleb128 0x3a
+ 1207 009a 0B       		.uleb128 0xb
+ 1208 009b 3B       		.uleb128 0x3b
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 27
+
+
+ 1209 009c 0B       		.uleb128 0xb
+ 1210 009d 01       		.uleb128 0x1
+ 1211 009e 13       		.uleb128 0x13
+ 1212 009f 00       		.byte	0
+ 1213 00a0 00       		.byte	0
+ 1214 00a1 0E       		.uleb128 0xe
+ 1215 00a2 0D       		.uleb128 0xd
+ 1216 00a3 00       		.byte	0
+ 1217 00a4 03       		.uleb128 0x3
+ 1218 00a5 0E       		.uleb128 0xe
+ 1219 00a6 3A       		.uleb128 0x3a
+ 1220 00a7 0B       		.uleb128 0xb
+ 1221 00a8 3B       		.uleb128 0x3b
+ 1222 00a9 0B       		.uleb128 0xb
+ 1223 00aa 49       		.uleb128 0x49
+ 1224 00ab 13       		.uleb128 0x13
+ 1225 00ac 38       		.uleb128 0x38
+ 1226 00ad 0B       		.uleb128 0xb
+ 1227 00ae 00       		.byte	0
+ 1228 00af 00       		.byte	0
+ 1229 00b0 0F       		.uleb128 0xf
+ 1230 00b1 04       		.uleb128 0x4
+ 1231 00b2 01       		.byte	0x1
+ 1232 00b3 0B       		.uleb128 0xb
+ 1233 00b4 0B       		.uleb128 0xb
+ 1234 00b5 3A       		.uleb128 0x3a
+ 1235 00b6 0B       		.uleb128 0xb
+ 1236 00b7 3B       		.uleb128 0x3b
+ 1237 00b8 05       		.uleb128 0x5
+ 1238 00b9 01       		.uleb128 0x1
+ 1239 00ba 13       		.uleb128 0x13
+ 1240 00bb 00       		.byte	0
+ 1241 00bc 00       		.byte	0
+ 1242 00bd 10       		.uleb128 0x10
+ 1243 00be 2E       		.uleb128 0x2e
+ 1244 00bf 01       		.byte	0x1
+ 1245 00c0 3F       		.uleb128 0x3f
+ 1246 00c1 19       		.uleb128 0x19
+ 1247 00c2 03       		.uleb128 0x3
+ 1248 00c3 0E       		.uleb128 0xe
+ 1249 00c4 3A       		.uleb128 0x3a
+ 1250 00c5 0B       		.uleb128 0xb
+ 1251 00c6 3B       		.uleb128 0x3b
+ 1252 00c7 0B       		.uleb128 0xb
+ 1253 00c8 27       		.uleb128 0x27
+ 1254 00c9 19       		.uleb128 0x19
+ 1255 00ca 11       		.uleb128 0x11
+ 1256 00cb 01       		.uleb128 0x1
+ 1257 00cc 12       		.uleb128 0x12
+ 1258 00cd 06       		.uleb128 0x6
+ 1259 00ce 40       		.uleb128 0x40
+ 1260 00cf 18       		.uleb128 0x18
+ 1261 00d0 9642     		.uleb128 0x2116
+ 1262 00d2 19       		.uleb128 0x19
+ 1263 00d3 01       		.uleb128 0x1
+ 1264 00d4 13       		.uleb128 0x13
+ 1265 00d5 00       		.byte	0
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 28
+
+
+ 1266 00d6 00       		.byte	0
+ 1267 00d7 11       		.uleb128 0x11
+ 1268 00d8 05       		.uleb128 0x5
+ 1269 00d9 00       		.byte	0
+ 1270 00da 03       		.uleb128 0x3
+ 1271 00db 0E       		.uleb128 0xe
+ 1272 00dc 3A       		.uleb128 0x3a
+ 1273 00dd 0B       		.uleb128 0xb
+ 1274 00de 3B       		.uleb128 0x3b
+ 1275 00df 0B       		.uleb128 0xb
+ 1276 00e0 49       		.uleb128 0x49
+ 1277 00e1 13       		.uleb128 0x13
+ 1278 00e2 02       		.uleb128 0x2
+ 1279 00e3 18       		.uleb128 0x18
+ 1280 00e4 00       		.byte	0
+ 1281 00e5 00       		.byte	0
+ 1282 00e6 12       		.uleb128 0x12
+ 1283 00e7 34       		.uleb128 0x34
+ 1284 00e8 00       		.byte	0
+ 1285 00e9 03       		.uleb128 0x3
+ 1286 00ea 0E       		.uleb128 0xe
+ 1287 00eb 3A       		.uleb128 0x3a
+ 1288 00ec 0B       		.uleb128 0xb
+ 1289 00ed 3B       		.uleb128 0x3b
+ 1290 00ee 0B       		.uleb128 0xb
+ 1291 00ef 49       		.uleb128 0x49
+ 1292 00f0 13       		.uleb128 0x13
+ 1293 00f1 02       		.uleb128 0x2
+ 1294 00f2 18       		.uleb128 0x18
+ 1295 00f3 00       		.byte	0
+ 1296 00f4 00       		.byte	0
+ 1297 00f5 13       		.uleb128 0x13
+ 1298 00f6 2E       		.uleb128 0x2e
+ 1299 00f7 00       		.byte	0
+ 1300 00f8 3F       		.uleb128 0x3f
+ 1301 00f9 19       		.uleb128 0x19
+ 1302 00fa 03       		.uleb128 0x3
+ 1303 00fb 0E       		.uleb128 0xe
+ 1304 00fc 3A       		.uleb128 0x3a
+ 1305 00fd 0B       		.uleb128 0xb
+ 1306 00fe 3B       		.uleb128 0x3b
+ 1307 00ff 0B       		.uleb128 0xb
+ 1308 0100 27       		.uleb128 0x27
+ 1309 0101 19       		.uleb128 0x19
+ 1310 0102 11       		.uleb128 0x11
+ 1311 0103 01       		.uleb128 0x1
+ 1312 0104 12       		.uleb128 0x12
+ 1313 0105 06       		.uleb128 0x6
+ 1314 0106 40       		.uleb128 0x40
+ 1315 0107 18       		.uleb128 0x18
+ 1316 0108 9642     		.uleb128 0x2116
+ 1317 010a 19       		.uleb128 0x19
+ 1318 010b 00       		.byte	0
+ 1319 010c 00       		.byte	0
+ 1320 010d 14       		.uleb128 0x14
+ 1321 010e 01       		.uleb128 0x1
+ 1322 010f 01       		.byte	0x1
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 29
+
+
+ 1323 0110 49       		.uleb128 0x49
+ 1324 0111 13       		.uleb128 0x13
+ 1325 0112 01       		.uleb128 0x1
+ 1326 0113 13       		.uleb128 0x13
+ 1327 0114 00       		.byte	0
+ 1328 0115 00       		.byte	0
+ 1329 0116 15       		.uleb128 0x15
+ 1330 0117 21       		.uleb128 0x21
+ 1331 0118 00       		.byte	0
+ 1332 0119 49       		.uleb128 0x49
+ 1333 011a 13       		.uleb128 0x13
+ 1334 011b 2F       		.uleb128 0x2f
+ 1335 011c 0B       		.uleb128 0xb
+ 1336 011d 00       		.byte	0
+ 1337 011e 00       		.byte	0
+ 1338 011f 16       		.uleb128 0x16
+ 1339 0120 34       		.uleb128 0x34
+ 1340 0121 00       		.byte	0
+ 1341 0122 03       		.uleb128 0x3
+ 1342 0123 0E       		.uleb128 0xe
+ 1343 0124 3A       		.uleb128 0x3a
+ 1344 0125 0B       		.uleb128 0xb
+ 1345 0126 3B       		.uleb128 0x3b
+ 1346 0127 05       		.uleb128 0x5
+ 1347 0128 49       		.uleb128 0x49
+ 1348 0129 13       		.uleb128 0x13
+ 1349 012a 3F       		.uleb128 0x3f
+ 1350 012b 19       		.uleb128 0x19
+ 1351 012c 3C       		.uleb128 0x3c
+ 1352 012d 19       		.uleb128 0x19
+ 1353 012e 00       		.byte	0
+ 1354 012f 00       		.byte	0
+ 1355 0130 17       		.uleb128 0x17
+ 1356 0131 34       		.uleb128 0x34
+ 1357 0132 00       		.byte	0
+ 1358 0133 03       		.uleb128 0x3
+ 1359 0134 0E       		.uleb128 0xe
+ 1360 0135 3A       		.uleb128 0x3a
+ 1361 0136 0B       		.uleb128 0xb
+ 1362 0137 3B       		.uleb128 0x3b
+ 1363 0138 0B       		.uleb128 0xb
+ 1364 0139 49       		.uleb128 0x49
+ 1365 013a 13       		.uleb128 0x13
+ 1366 013b 3F       		.uleb128 0x3f
+ 1367 013c 19       		.uleb128 0x19
+ 1368 013d 02       		.uleb128 0x2
+ 1369 013e 18       		.uleb128 0x18
+ 1370 013f 00       		.byte	0
+ 1371 0140 00       		.byte	0
+ 1372 0141 00       		.byte	0
+ 1373              		.section	.debug_aranges,"",%progbits
+ 1374 0000 34000000 		.4byte	0x34
+ 1375 0004 0200     		.2byte	0x2
+ 1376 0006 00000000 		.4byte	.Ldebug_info0
+ 1377 000a 04       		.byte	0x4
+ 1378 000b 00       		.byte	0
+ 1379 000c 0000     		.2byte	0
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 30
+
+
+ 1380 000e 0000     		.2byte	0
+ 1381 0010 00000000 		.4byte	.LFB35
+ 1382 0014 08010000 		.4byte	.LFE35-.LFB35
+ 1383 0018 00000000 		.4byte	.LFB36
+ 1384 001c 44000000 		.4byte	.LFE36-.LFB36
+ 1385 0020 00000000 		.4byte	.LFB37
+ 1386 0024 3C000000 		.4byte	.LFE37-.LFB37
+ 1387 0028 00000000 		.4byte	.LFB38
+ 1388 002c 5C000000 		.4byte	.LFE38-.LFB38
+ 1389 0030 00000000 		.4byte	0
+ 1390 0034 00000000 		.4byte	0
+ 1391              		.section	.debug_ranges,"",%progbits
+ 1392              	.Ldebug_ranges0:
+ 1393 0000 00000000 		.4byte	.LFB35
+ 1394 0004 08010000 		.4byte	.LFE35
+ 1395 0008 00000000 		.4byte	.LFB36
+ 1396 000c 44000000 		.4byte	.LFE36
+ 1397 0010 00000000 		.4byte	.LFB37
+ 1398 0014 3C000000 		.4byte	.LFE37
+ 1399 0018 00000000 		.4byte	.LFB38
+ 1400 001c 5C000000 		.4byte	.LFE38
+ 1401 0020 00000000 		.4byte	0
+ 1402 0024 00000000 		.4byte	0
+ 1403              		.section	.debug_line,"",%progbits
+ 1404              	.Ldebug_line0:
+ 1405 0000 5D010000 		.section	.debug_str,"MS",%progbits,1
+ 1405      0200B300 
+ 1405      00000201 
+ 1405      FB0E0D00 
+ 1405      01010101 
+ 1406              	.LASF88:
+ 1407 0000 4359424C 		.ascii	"CYBLE_STATE_STOPPED\000"
+ 1407      455F5354 
+ 1407      4154455F 
+ 1407      53544F50 
+ 1407      50454400 
+ 1408              	.LASF24:
+ 1409 0014 4359424C 		.ascii	"CYBLE_EVT_GAP_PASSKEY_ENTRY_REQUEST\000"
+ 1409      455F4556 
+ 1409      545F4741 
+ 1409      505F5041 
+ 1409      53534B45 
+ 1410              	.LASF110:
+ 1411 0038 72657374 		.ascii	"restartAdvertisement\000"
+ 1411      61727441 
+ 1411      64766572 
+ 1411      74697365 
+ 1411      6D656E74 
+ 1412              	.LASF89:
+ 1413 004d 4359424C 		.ascii	"CYBLE_STATE_INITIALIZING\000"
+ 1413      455F5354 
+ 1413      4154455F 
+ 1413      494E4954 
+ 1413      49414C49 
+ 1414              	.LASF48:
+ 1415 0066 4359424C 		.ascii	"CYBLE_EVT_GATTC_WRITE_RSP\000"
+ 1415      455F4556 
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 31
+
+
+ 1415      545F4741 
+ 1415      5454435F 
+ 1415      57524954 
+ 1416              	.LASF35:
+ 1417 0080 4359424C 		.ascii	"CYBLE_EVT_GATTC_ERROR_RSP\000"
+ 1417      455F4556 
+ 1417      545F4741 
+ 1417      5454435F 
+ 1417      4552524F 
+ 1418              	.LASF67:
+ 1419 009a 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_DATA_WRITE_IND\000"
+ 1419      455F4556 
+ 1419      545F4C32 
+ 1419      4341505F 
+ 1419      43424643 
+ 1420              	.LASF30:
+ 1421 00be 4359424C 		.ascii	"CYBLE_EVT_GAP_DEVICE_DISCONNECTED\000"
+ 1421      455F4556 
+ 1421      545F4741 
+ 1421      505F4445 
+ 1421      56494345 
+ 1422              	.LASF107:
+ 1423 00e0 64657669 		.ascii	"deviceConnected\000"
+ 1423      6365436F 
+ 1423      6E6E6563 
+ 1423      74656400 
+ 1424              	.LASF102:
+ 1425 00f0 43434344 		.ascii	"CCCDvalue\000"
+ 1425      76616C75 
+ 1425      6500
+ 1426              	.LASF111:
+ 1427 00fa 75706461 		.ascii	"updateNotificationCCCAttribute\000"
+ 1427      74654E6F 
+ 1427      74696669 
+ 1427      63617469 
+ 1427      6F6E4343 
+ 1428              	.LASF27:
+ 1429 0119 4359424C 		.ascii	"CYBLE_EVT_GAP_AUTH_FAILED\000"
+ 1429      455F4556 
+ 1429      545F4741 
+ 1429      505F4155 
+ 1429      54485F46 
+ 1430              	.LASF37:
+ 1431 0133 4359424C 		.ascii	"CYBLE_EVT_GATT_DISCONNECT_IND\000"
+ 1431      455F4556 
+ 1431      545F4741 
+ 1431      54545F44 
+ 1431      4953434F 
+ 1432              	.LASF72:
+ 1433 0151 636F6E6E 		.ascii	"connLatency\000"
+ 1433      4C617465 
+ 1433      6E637900 
+ 1434              	.LASF15:
+ 1435 015d 73697A65 		.ascii	"sizetype\000"
+ 1435      74797065 
+ 1435      00
+ 1436              	.LASF85:
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 32
+
+
+ 1437 0166 636F6E6E 		.ascii	"connHandle\000"
+ 1437      48616E64 
+ 1437      6C6500
+ 1438              	.LASF96:
+ 1439 0171 43757374 		.ascii	"CustomEventHandler\000"
+ 1439      6F6D4576 
+ 1439      656E7448 
+ 1439      616E646C 
+ 1439      657200
+ 1440              	.LASF103:
+ 1441 0184 6E6F7469 		.ascii	"notificationCCCDhandle\000"
+ 1441      66696361 
+ 1441      74696F6E 
+ 1441      43434344 
+ 1441      68616E64 
+ 1442              	.LASF99:
+ 1443 019b 77725265 		.ascii	"wrReqParam\000"
+ 1443      71506172 
+ 1443      616D00
+ 1444              	.LASF31:
+ 1445 01a6 4359424C 		.ascii	"CYBLE_EVT_GAP_ENCRYPT_CHANGE\000"
+ 1445      455F4556 
+ 1445      545F4741 
+ 1445      505F454E 
+ 1445      43525950 
+ 1446              	.LASF94:
+ 1447 01c3 6576656E 		.ascii	"event\000"
+ 1447      7400
+ 1448              	.LASF20:
+ 1449 01c9 4359424C 		.ascii	"CYBLE_EVT_HCI_STATUS\000"
+ 1449      455F4556 
+ 1449      545F4843 
+ 1449      495F5354 
+ 1449      41545553 
+ 1450              	.LASF41:
+ 1451 01de 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_BY_TYPE_RSP\000"
+ 1451      455F4556 
+ 1451      545F4741 
+ 1451      5454435F 
+ 1451      52454144 
+ 1452              	.LASF17:
+ 1453 01ff 4359424C 		.ascii	"CYBLE_EVT_STACK_ON\000"
+ 1453      455F4556 
+ 1453      545F5354 
+ 1453      41434B5F 
+ 1453      4F4E00
+ 1454              	.LASF90:
+ 1455 0212 4359424C 		.ascii	"CYBLE_STATE_CONNECTED\000"
+ 1455      455F5354 
+ 1455      4154455F 
+ 1455      434F4E4E 
+ 1455      45435445 
+ 1456              	.LASF38:
+ 1457 0228 4359424C 		.ascii	"CYBLE_EVT_GATTS_XCNHG_MTU_REQ\000"
+ 1457      455F4556 
+ 1457      545F4741 
+ 1457      5454535F 
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 33
+
+
+ 1457      58434E48 
+ 1458              	.LASF97:
+ 1459 0246 53656E64 		.ascii	"SendDataOverNotification\000"
+ 1459      44617461 
+ 1459      4F766572 
+ 1459      4E6F7469 
+ 1459      66696361 
+ 1460              	.LASF10:
+ 1461 025f 75696E74 		.ascii	"uint16\000"
+ 1461      313600
+ 1462              	.LASF108:
+ 1463 0266 73746172 		.ascii	"startNotification\000"
+ 1463      744E6F74 
+ 1463      69666963 
+ 1463      6174696F 
+ 1463      6E00
+ 1464              	.LASF34:
+ 1465 0278 4359424C 		.ascii	"CYBLE_EVT_GAP_KEYINFO_EXCHNGE_CMPLT\000"
+ 1465      455F4556 
+ 1465      545F4741 
+ 1465      505F4B45 
+ 1465      59494E46 
+ 1466              	.LASF46:
+ 1467 029c 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_MULTI_RSP\000"
+ 1467      455F4556 
+ 1467      545F4741 
+ 1467      5454435F 
+ 1467      52454144 
+ 1468              	.LASF55:
+ 1469 02bb 4359424C 		.ascii	"CYBLE_EVT_GATTS_HANDLE_VALUE_CNF\000"
+ 1469      455F4556 
+ 1469      545F4741 
+ 1469      5454535F 
+ 1469      48414E44 
+ 1470              	.LASF16:
+ 1471 02dc 4359424C 		.ascii	"CYBLE_EVT_HOST_INVALID\000"
+ 1471      455F4556 
+ 1471      545F484F 
+ 1471      53545F49 
+ 1471      4E56414C 
+ 1472              	.LASF60:
+ 1473 02f3 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_CONN_IND\000"
+ 1473      455F4556 
+ 1473      545F4C32 
+ 1473      4341505F 
+ 1473      43424643 
+ 1474              	.LASF63:
+ 1475 0311 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_DISCONN_CNF\000"
+ 1475      455F4556 
+ 1475      545F4C32 
+ 1475      4341505F 
+ 1475      43424643 
+ 1476              	.LASF113:
+ 1477 0332 474E5520 		.ascii	"GNU C 4.8.4 20140526 (release) [ARM/embedded-4_8-br"
+ 1477      4320342E 
+ 1477      382E3420 
+ 1477      32303134 
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 34
+
+
+ 1477      30353236 
+ 1478 0365 616E6368 		.ascii	"anch revision 211358] -mcpu=cortex-m0 -mthumb -g -O"
+ 1478      20726576 
+ 1478      6973696F 
+ 1478      6E203231 
+ 1478      31333538 
+ 1479 0398 30202D66 		.ascii	"0 -ffunction-sections\000"
+ 1479      66756E63 
+ 1479      74696F6E 
+ 1479      2D736563 
+ 1479      74696F6E 
+ 1480              	.LASF2:
+ 1481 03ae 73686F72 		.ascii	"short int\000"
+ 1481      7420696E 
+ 1481      7400
+ 1482              	.LASF76:
+ 1483 03b8 62644861 		.ascii	"bdHandle\000"
+ 1483      6E646C65 
+ 1483      00
+ 1484              	.LASF12:
+ 1485 03c1 666C6F61 		.ascii	"float\000"
+ 1485      7400
+ 1486              	.LASF115:
+ 1487 03c7 433A5C55 		.ascii	"C:\\Users\\ksoneda\\Documents\\PSoC Creator\\Senior"
+ 1487      73657273 
+ 1487      5C6B736F 
+ 1487      6E656461 
+ 1487      5C446F63 
+ 1488 03f5 20446573 		.ascii	" Design\\AQM Firmware BLE\\AQM Firmware BLE v1.cyds"
+ 1488      69676E5C 
+ 1488      41514D20 
+ 1488      4669726D 
+ 1488      77617265 
+ 1489 0426 6E00     		.ascii	"n\000"
+ 1490              	.LASF44:
+ 1491 0428 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_RSP\000"
+ 1491      455F4556 
+ 1491      545F4741 
+ 1491      5454435F 
+ 1491      52454144 
+ 1492              	.LASF74:
+ 1493 0441 4359424C 		.ascii	"CYBLE_GAP_CONN_UPDATE_PARAM_T\000"
+ 1493      455F4741 
+ 1493      505F434F 
+ 1493      4E4E5F55 
+ 1493      50444154 
+ 1494              	.LASF6:
+ 1495 045f 6C6F6E67 		.ascii	"long long int\000"
+ 1495      206C6F6E 
+ 1495      6720696E 
+ 1495      7400
+ 1496              	.LASF7:
+ 1497 046d 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 1497      206C6F6E 
+ 1497      6720756E 
+ 1497      7369676E 
+ 1497      65642069 
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 35
+
+
+ 1498              	.LASF112:
+ 1499 0484 62757379 		.ascii	"busyStatus\000"
+ 1499      53746174 
+ 1499      757300
+ 1500              	.LASF84:
+ 1501 048f 4359424C 		.ascii	"CYBLE_GATTS_HANDLE_VALUE_NTF_T\000"
+ 1501      455F4741 
+ 1501      5454535F 
+ 1501      48414E44 
+ 1501      4C455F56 
+ 1502              	.LASF4:
+ 1503 04ae 6C6F6E67 		.ascii	"long int\000"
+ 1503      20696E74 
+ 1503      00
+ 1504              	.LASF54:
+ 1505 04b7 4359424C 		.ascii	"CYBLE_EVT_GATTC_HANDLE_VALUE_IND\000"
+ 1505      455F4556 
+ 1505      545F4741 
+ 1505      5454435F 
+ 1505      48414E44 
+ 1506              	.LASF105:
+ 1507 04d8 436F6E6E 		.ascii	"ConnectionParam\000"
+ 1507      65637469 
+ 1507      6F6E5061 
+ 1507      72616D00 
+ 1508              	.LASF29:
+ 1509 04e8 4359424C 		.ascii	"CYBLE_EVT_GAP_DEVICE_CONNECTED\000"
+ 1509      455F4556 
+ 1509      545F4741 
+ 1509      505F4445 
+ 1509      56494345 
+ 1510              	.LASF116:
+ 1511 0507 55706461 		.ascii	"UpdateConnectionParam\000"
+ 1511      7465436F 
+ 1511      6E6E6563 
+ 1511      74696F6E 
+ 1511      50617261 
+ 1512              	.LASF28:
+ 1513 051d 4359424C 		.ascii	"CYBLE_EVT_GAPP_ADVERTISEMENT_START_STOP\000"
+ 1513      455F4556 
+ 1513      545F4741 
+ 1513      50505F41 
+ 1513      44564552 
+ 1514              	.LASF53:
+ 1515 0545 4359424C 		.ascii	"CYBLE_EVT_GATTC_HANDLE_VALUE_NTF\000"
+ 1515      455F4556 
+ 1515      545F4741 
+ 1515      5454435F 
+ 1515      48414E44 
+ 1516              	.LASF21:
+ 1517 0566 4359424C 		.ascii	"CYBLE_EVT_STACK_BUSY_STATUS\000"
+ 1517      455F4556 
+ 1517      545F5354 
+ 1517      41434B5F 
+ 1517      42555359 
+ 1518              	.LASF87:
+ 1519 0582 4359424C 		.ascii	"CYBLE_GATTS_WRITE_REQ_PARAM_T\000"
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 36
+
+
+ 1519      455F4741 
+ 1519      5454535F 
+ 1519      57524954 
+ 1519      455F5245 
+ 1520              	.LASF25:
+ 1521 05a0 4359424C 		.ascii	"CYBLE_EVT_GAP_PASSKEY_DISPLAY_REQUEST\000"
+ 1521      455F4556 
+ 1521      545F4741 
+ 1521      505F5041 
+ 1521      53534B45 
+ 1522              	.LASF100:
+ 1523 05c6 6E6F7469 		.ascii	"notificationHandle\000"
+ 1523      66696361 
+ 1523      74696F6E 
+ 1523      48616E64 
+ 1523      6C6500
+ 1524              	.LASF59:
+ 1525 05d9 4359424C 		.ascii	"CYBLE_EVT_L2CAP_COMMAND_REJ\000"
+ 1525      455F4556 
+ 1525      545F4C32 
+ 1525      4341505F 
+ 1525      434F4D4D 
+ 1526              	.LASF69:
+ 1527 05f5 4359424C 		.ascii	"CYBLE_EVT_MAX\000"
+ 1527      455F4556 
+ 1527      545F4D41 
+ 1527      5800
+ 1528              	.LASF9:
+ 1529 0603 75696E74 		.ascii	"uint8\000"
+ 1529      3800
+ 1530              	.LASF57:
+ 1531 0609 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CONN_PARAM_UPDATE_REQ\000"
+ 1531      455F4556 
+ 1531      545F4C32 
+ 1531      4341505F 
+ 1531      434F4E4E 
+ 1532              	.LASF1:
+ 1533 062f 756E7369 		.ascii	"unsigned char\000"
+ 1533      676E6564 
+ 1533      20636861 
+ 1533      7200
+ 1534              	.LASF50:
+ 1535 063d 4359424C 		.ascii	"CYBLE_EVT_GATTS_PREP_WRITE_REQ\000"
+ 1535      455F4556 
+ 1535      545F4741 
+ 1535      5454535F 
+ 1535      50524550 
+ 1536              	.LASF106:
+ 1537 065c 6379426C 		.ascii	"cyBle_state\000"
+ 1537      655F7374 
+ 1537      61746500 
+ 1538              	.LASF42:
+ 1539 0668 4359424C 		.ascii	"CYBLE_EVT_GATTC_FIND_INFO_RSP\000"
+ 1539      455F4556 
+ 1539      545F4741 
+ 1539      5454435F 
+ 1539      46494E44 
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 37
+
+
+ 1540              	.LASF0:
+ 1541 0686 7369676E 		.ascii	"signed char\000"
+ 1541      65642063 
+ 1541      68617200 
+ 1542              	.LASF47:
+ 1543 0692 4359424C 		.ascii	"CYBLE_EVT_GATTS_WRITE_REQ\000"
+ 1543      455F4556 
+ 1543      545F4741 
+ 1543      5454535F 
+ 1543      57524954 
+ 1544              	.LASF43:
+ 1545 06ac 4359424C 		.ascii	"CYBLE_EVT_GATTC_FIND_BY_TYPE_VALUE_RSP\000"
+ 1545      455F4556 
+ 1545      545F4741 
+ 1545      5454435F 
+ 1545      46494E44 
+ 1546              	.LASF26:
+ 1547 06d3 4359424C 		.ascii	"CYBLE_EVT_GAP_AUTH_COMPLETE\000"
+ 1547      455F4556 
+ 1547      545F4741 
+ 1547      505F4155 
+ 1547      54485F43 
+ 1548              	.LASF8:
+ 1549 06ef 756E7369 		.ascii	"unsigned int\000"
+ 1549      676E6564 
+ 1549      20696E74 
+ 1549      00
+ 1550              	.LASF36:
+ 1551 06fc 4359424C 		.ascii	"CYBLE_EVT_GATT_CONNECT_IND\000"
+ 1551      455F4556 
+ 1551      545F4741 
+ 1551      54545F43 
+ 1551      4F4E4E45 
+ 1552              	.LASF5:
+ 1553 0717 6C6F6E67 		.ascii	"long unsigned int\000"
+ 1553      20756E73 
+ 1553      69676E65 
+ 1553      6420696E 
+ 1553      7400
+ 1554              	.LASF23:
+ 1555 0729 4359424C 		.ascii	"CYBLE_EVT_GAP_AUTH_REQ\000"
+ 1555      455F4556 
+ 1555      545F4741 
+ 1555      505F4155 
+ 1555      54485F52 
+ 1556              	.LASF93:
+ 1557 0740 4359424C 		.ascii	"CYBLE_STATE_T\000"
+ 1557      455F5354 
+ 1557      4154455F 
+ 1557      5400
+ 1558              	.LASF62:
+ 1559 074e 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_DISCONN_IND\000"
+ 1559      455F4556 
+ 1559      545F4C32 
+ 1559      4341505F 
+ 1559      43424643 
+ 1560              	.LASF70:
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 38
+
+
+ 1561 076f 636F6E6E 		.ascii	"connIntvMin\000"
+ 1561      496E7476 
+ 1561      4D696E00 
+ 1562              	.LASF3:
+ 1563 077b 73686F72 		.ascii	"short unsigned int\000"
+ 1563      7420756E 
+ 1563      7369676E 
+ 1563      65642069 
+ 1563      6E7400
+ 1564              	.LASF32:
+ 1565 078e 4359424C 		.ascii	"CYBLE_EVT_GAP_CONNECTION_UPDATE_COMPLETE\000"
+ 1565      455F4556 
+ 1565      545F4741 
+ 1565      505F434F 
+ 1565      4E4E4543 
+ 1566              	.LASF14:
+ 1567 07b7 63686172 		.ascii	"char\000"
+ 1567      00
+ 1568              	.LASF80:
+ 1569 07bc 4359424C 		.ascii	"CYBLE_GATT_VALUE_T\000"
+ 1569      455F4741 
+ 1569      54545F56 
+ 1569      414C5545 
+ 1569      5F5400
+ 1570              	.LASF101:
+ 1571 07cf 55706461 		.ascii	"UpdateNotificationCCCD\000"
+ 1571      74654E6F 
+ 1571      74696669 
+ 1571      63617469 
+ 1571      6F6E4343 
+ 1572              	.LASF104:
+ 1573 07e6 6973436F 		.ascii	"isConnectionUpdateRequested\000"
+ 1573      6E6E6563 
+ 1573      74696F6E 
+ 1573      55706461 
+ 1573      74655265 
+ 1574              	.LASF92:
+ 1575 0802 4359424C 		.ascii	"CYBLE_STATE_DISCONNECTED\000"
+ 1575      455F5354 
+ 1575      4154455F 
+ 1575      44495343 
+ 1575      4F4E4E45 
+ 1576              	.LASF86:
+ 1577 081b 68616E64 		.ascii	"handleValPair\000"
+ 1577      6C655661 
+ 1577      6C506169 
+ 1577      7200
+ 1578              	.LASF45:
+ 1579 0829 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_BLOB_RSP\000"
+ 1579      455F4556 
+ 1579      545F4741 
+ 1579      5454435F 
+ 1579      52454144 
+ 1580              	.LASF91:
+ 1581 0847 4359424C 		.ascii	"CYBLE_STATE_ADVERTISING\000"
+ 1581      455F5354 
+ 1581      4154455F 
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 39
+
+
+ 1581      41445645 
+ 1581      52544953 
+ 1582              	.LASF52:
+ 1583 085f 4359424C 		.ascii	"CYBLE_EVT_GATTC_EXEC_WRITE_RSP\000"
+ 1583      455F4556 
+ 1583      545F4741 
+ 1583      5454435F 
+ 1583      45584543 
+ 1584              	.LASF11:
+ 1585 087e 75696E74 		.ascii	"uint32\000"
+ 1585      333200
+ 1586              	.LASF68:
+ 1587 0885 4359424C 		.ascii	"CYBLE_EVT_PENDING_FLASH_WRITE\000"
+ 1587      455F4556 
+ 1587      545F5045 
+ 1587      4E44494E 
+ 1587      475F464C 
+ 1588              	.LASF65:
+ 1589 08a3 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_RX_CREDIT_IND\000"
+ 1589      455F4556 
+ 1589      545F4C32 
+ 1589      4341505F 
+ 1589      43424643 
+ 1590              	.LASF82:
+ 1591 08c6 61747472 		.ascii	"attrHandle\000"
+ 1591      48616E64 
+ 1591      6C6500
+ 1592              	.LASF13:
+ 1593 08d1 646F7562 		.ascii	"double\000"
+ 1593      6C6500
+ 1594              	.LASF78:
+ 1595 08d8 4359424C 		.ascii	"CYBLE_CONN_HANDLE_T\000"
+ 1595      455F434F 
+ 1595      4E4E5F48 
+ 1595      414E444C 
+ 1595      455F5400 
+ 1596              	.LASF83:
+ 1597 08ec 4359424C 		.ascii	"CYBLE_GATT_HANDLE_VALUE_PAIR_T\000"
+ 1597      455F4741 
+ 1597      54545F48 
+ 1597      414E444C 
+ 1597      455F5641 
+ 1598              	.LASF66:
+ 1599 090b 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_TX_CREDIT_IND\000"
+ 1599      455F4556 
+ 1599      545F4C32 
+ 1599      4341505F 
+ 1599      43424643 
+ 1600              	.LASF61:
+ 1601 092e 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_CONN_CNF\000"
+ 1601      455F4556 
+ 1601      545F4C32 
+ 1601      4341505F 
+ 1601      43424643 
+ 1602              	.LASF19:
+ 1603 094c 4359424C 		.ascii	"CYBLE_EVT_HARDWARE_ERROR\000"
+ 1603      455F4556 
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 40
+
+
+ 1603      545F4841 
+ 1603      52445741 
+ 1603      52455F45 
+ 1604              	.LASF64:
+ 1605 0965 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_DATA_READ\000"
+ 1605      455F4556 
+ 1605      545F4C32 
+ 1605      4341505F 
+ 1605      43424643 
+ 1606              	.LASF58:
+ 1607 0984 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CONN_PARAM_UPDATE_RSP\000"
+ 1607      455F4556 
+ 1607      545F4C32 
+ 1607      4341505F 
+ 1607      434F4E4E 
+ 1608              	.LASF22:
+ 1609 09aa 4359424C 		.ascii	"CYBLE_EVT_GAPC_SCAN_PROGRESS_RESULT\000"
+ 1609      455F4556 
+ 1609      545F4741 
+ 1609      50435F53 
+ 1609      43414E5F 
+ 1610              	.LASF79:
+ 1611 09ce 61637475 		.ascii	"actualLen\000"
+ 1611      616C4C65 
+ 1611      6E00
+ 1612              	.LASF40:
+ 1613 09d8 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_BY_GROUP_TYPE_RSP\000"
+ 1613      455F4556 
+ 1613      545F4741 
+ 1613      5454435F 
+ 1613      52454144 
+ 1614              	.LASF49:
+ 1615 09ff 4359424C 		.ascii	"CYBLE_EVT_GATTS_WRITE_CMD_REQ\000"
+ 1615      455F4556 
+ 1615      545F4741 
+ 1615      5454535F 
+ 1615      57524954 
+ 1616              	.LASF39:
+ 1617 0a1d 4359424C 		.ascii	"CYBLE_EVT_GATTC_XCHNG_MTU_RSP\000"
+ 1617      455F4556 
+ 1617      545F4741 
+ 1617      5454435F 
+ 1617      5843484E 
+ 1618              	.LASF18:
+ 1619 0a3b 4359424C 		.ascii	"CYBLE_EVT_TIMEOUT\000"
+ 1619      455F4556 
+ 1619      545F5449 
+ 1619      4D454F55 
+ 1619      5400
+ 1620              	.LASF71:
+ 1621 0a4d 636F6E6E 		.ascii	"connIntvMax\000"
+ 1621      496E7476 
+ 1621      4D617800 
+ 1622              	.LASF33:
+ 1623 0a59 4359424C 		.ascii	"CYBLE_EVT_GAPC_SCAN_START_STOP\000"
+ 1623      455F4556 
+ 1623      545F4741 
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccgWYDQL.s 			page 41
+
+
+ 1623      50435F53 
+ 1623      43414E5F 
+ 1624              	.LASF109:
+ 1625 0a78 636F6E6E 		.ascii	"connectionHandle\000"
+ 1625      65637469 
+ 1625      6F6E4861 
+ 1625      6E646C65 
+ 1625      00
+ 1626              	.LASF81:
+ 1627 0a89 76616C75 		.ascii	"value\000"
+ 1627      6500
+ 1628              	.LASF51:
+ 1629 0a8f 4359424C 		.ascii	"CYBLE_EVT_GATTS_EXEC_WRITE_REQ\000"
+ 1629      455F4556 
+ 1629      545F4741 
+ 1629      5454535F 
+ 1629      45584543 
+ 1630              	.LASF75:
+ 1631 0aae 4359424C 		.ascii	"CYBLE_GATT_DB_ATTR_HANDLE_T\000"
+ 1631      455F4741 
+ 1631      54545F44 
+ 1631      425F4154 
+ 1631      54525F48 
+ 1632              	.LASF95:
+ 1633 0aca 6576656E 		.ascii	"eventParam\000"
+ 1633      74506172 
+ 1633      616D00
+ 1634              	.LASF98:
+ 1635 0ad5 72616E64 		.ascii	"randValue\000"
+ 1635      56616C75 
+ 1635      6500
+ 1636              	.LASF56:
+ 1637 0adf 4359424C 		.ascii	"CYBLE_EVT_GATTS_DATA_SIGNED_CMD_REQ\000"
+ 1637      455F4556 
+ 1637      545F4741 
+ 1637      5454535F 
+ 1637      44415441 
+ 1638              	.LASF114:
+ 1639 0b03 2E5C424C 		.ascii	".\\BLEApplications.c\000"
+ 1639      45417070 
+ 1639      6C696361 
+ 1639      74696F6E 
+ 1639      732E6300 
+ 1640              	.LASF73:
+ 1641 0b17 73757065 		.ascii	"supervisionTO\000"
+ 1641      72766973 
+ 1641      696F6E54 
+ 1641      4F00
+ 1642              	.LASF77:
+ 1643 0b25 61747449 		.ascii	"attId\000"
+ 1643      6400
+ 1644              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 4.8.4 20140526 (release) [ARM/embedded-4_8-br

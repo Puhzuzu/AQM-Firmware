@@ -1,0 +1,1854 @@
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 1
+
+
+   1              		.cpu cortex-m0
+   2              		.fpu softvfp
+   3              		.eabi_attribute 20, 1
+   4              		.eabi_attribute 21, 1
+   5              		.eabi_attribute 23, 3
+   6              		.eabi_attribute 24, 1
+   7              		.eabi_attribute 25, 1
+   8              		.eabi_attribute 26, 1
+   9              		.eabi_attribute 30, 6
+  10              		.eabi_attribute 34, 0
+  11              		.eabi_attribute 18, 4
+  12              		.code	16
+  13              		.file	"mainLoop.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.comm	dataArray,20,4
+  18              		.data
+  19              		.align	2
+  20              		.type	wait, %object
+  21              		.size	wait, 4
+  22              	wait:
+  23 0000 01000000 		.word	1
+  24              		.global	__aeabi_ui2f
+  25              		.global	__aeabi_fdiv
+  26              		.global	__aeabi_fmul
+  27              		.global	__aeabi_fadd
+  28              		.section	.text.HandleDataCollection,"ax",%progbits
+  29              		.align	2
+  30              		.global	HandleDataCollection
+  31              		.code	16
+  32              		.thumb_func
+  33              		.type	HandleDataCollection, %function
+  34              	HandleDataCollection:
+  35              	.LFB35:
+  36              		.file 1 ".\\mainLoop.c"
+   1:.\mainLoop.c  **** /* ========================================
+   2:.\mainLoop.c  ****  *
+   3:.\mainLoop.c  ****  * by Keith Soneda
+   4:.\mainLoop.c  ****  * UC Davis - EEC136AB - Firmware for Air Quality Monitor - PSOC 4 BLE revision - March 2015
+   5:.\mainLoop.c  ****  * Overview: Data Collection Cycle for Dust, Temperature, Humidity, and CO2
+   6:.\mainLoop.c  ****  * ========================================
+   7:.\mainLoop.c  **** */
+   8:.\mainLoop.c  **** #include "main.h"
+   9:.\mainLoop.c  **** 
+  10:.\mainLoop.c  **** float dataArray[5];//stores most recent cycle worth of float values
+  11:.\mainLoop.c  **** 
+  12:.\mainLoop.c  **** extern uint32 SPdata;//stores low pulse time for small particle dust
+  13:.\mainLoop.c  **** extern uint32 LPdata;//stores low pulse time for large particle dust
+  14:.\mainLoop.c  **** 
+  15:.\mainLoop.c  **** #ifdef MAIN_LOOP_H
+  16:.\mainLoop.c  **** static uint32 wait= 1u;
+  17:.\mainLoop.c  **** //Function for performing regular data measurements cycle and storing the data in EEPROM
+  18:.\mainLoop.c  **** void HandleDataCollection(void)
+  19:.\mainLoop.c  **** {
+  37              		.loc 1 19 0
+  38              		.cfi_startproc
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 2
+
+
+  39 0000 90B5     		push	{r4, r7, lr}
+  40              		.cfi_def_cfa_offset 12
+  41              		.cfi_offset 4, -12
+  42              		.cfi_offset 7, -8
+  43              		.cfi_offset 14, -4
+  44 0002 8FB0     		sub	sp, sp, #60
+  45              		.cfi_def_cfa_offset 72
+  46 0004 00AF     		add	r7, sp, #0
+  47              		.cfi_def_cfa_register 7
+  20:.\mainLoop.c  **** 	//State Machine flags 
+  21:.\mainLoop.c  **** 	static uint8 currentState = IDLE_STATE;
+  22:.\mainLoop.c  **** 	static uint8 nextState = CONTINUOUS_MODE;//(Set in XBEE ISR) 
+  23:.\mainLoop.c  **** 	static uint8 currentReadMode = CONTINUOUS_MODE;
+  24:.\mainLoop.c  **** 	
+  25:.\mainLoop.c  **** 	static uint32 dataBuf[3] = {1u, 1u, 1u};
+  26:.\mainLoop.c  **** 	static uint32 *dataPtr = dataBuf;
+  27:.\mainLoop.c  **** 	
+  28:.\mainLoop.c  **** 
+  29:.\mainLoop.c  **** 	if(FALSE == (--wait))//provides some delay between measurement cycles
+  48              		.loc 1 29 0
+  49 0006 914B     		ldr	r3, .L10
+  50 0008 1B68     		ldr	r3, [r3]
+  51 000a 5A1E     		sub	r2, r3, #1
+  52 000c 8F4B     		ldr	r3, .L10
+  53 000e 1A60     		str	r2, [r3]
+  54 0010 8E4B     		ldr	r3, .L10
+  55 0012 1B68     		ldr	r3, [r3]
+  56 0014 002B     		cmp	r3, #0
+  57 0016 00D0     		beq	.LCB21
+  58 0018 14E1     		b	.L1	@long jump
+  59              	.LCB21:
+  30:.\mainLoop.c  **** 	{
+  31:.\mainLoop.c  **** 		BLUE_Write(~BLUE_Read());
+  60              		.loc 1 31 0
+  61 001a FFF7FEFF 		bl	BLUE_Read
+  62 001e 031C     		mov	r3, r0
+  63 0020 DB43     		mvn	r3, r3
+  64 0022 DBB2     		uxtb	r3, r3
+  65 0024 181C     		mov	r0, r3
+  66 0026 FFF7FEFF 		bl	BLUE_Write
+  32:.\mainLoop.c  **** 		wait = 6553500;
+  67              		.loc 1 32 0
+  68 002a 884B     		ldr	r3, .L10
+  69 002c 884A     		ldr	r2, .L10+4
+  70 002e 1A60     		str	r2, [r3]
+  33:.\mainLoop.c  **** 		switch (currentState)
+  71              		.loc 1 33 0
+  72 0030 884B     		ldr	r3, .L10+8
+  73 0032 1B78     		ldrb	r3, [r3]
+  74 0034 022B     		cmp	r3, #2
+  75 0036 19D0     		beq	.L4
+  76 0038 02DC     		bgt	.L5
+  77 003a 012B     		cmp	r3, #1
+  78 003c 07D0     		beq	.L6
+  79 003e FAE0     		b	.L3
+  80              	.L5:
+  81 0040 032B     		cmp	r3, #3
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 3
+
+
+  82 0042 00D1     		bne	.LCB44
+  83 0044 8DE0     		b	.L7	@long jump
+  84              	.LCB44:
+  85 0046 0B2B     		cmp	r3, #11
+  86 0048 00D1     		bne	.LCB46
+  87 004a 9FE0     		b	.L8	@long jump
+  88              	.LCB46:
+  89 004c F3E0     		b	.L3
+  90              	.L6:
+  34:.\mainLoop.c  **** 		{
+  35:.\mainLoop.c  **** 			case IDLE_STATE:
+  36:.\mainLoop.c  **** 			{
+  37:.\mainLoop.c  **** 				if(nextState != STANDBY_MODE)
+  91              		.loc 1 37 0
+  92 004e 824B     		ldr	r3, .L10+12
+  93 0050 1B78     		ldrb	r3, [r3]
+  94 0052 012B     		cmp	r3, #1
+  95 0054 0AD0     		beq	.L4
+  38:.\mainLoop.c  **** 				{
+  39:.\mainLoop.c  **** 					currentState = LoadNextState(nextState,&currentReadMode);
+  96              		.loc 1 39 0
+  97 0056 804B     		ldr	r3, .L10+12
+  98 0058 1A78     		ldrb	r2, [r3]
+  99 005a 804B     		ldr	r3, .L10+16
+ 100 005c 101C     		mov	r0, r2
+ 101 005e 191C     		mov	r1, r3
+ 102 0060 FFF7FEFF 		bl	LoadNextState
+ 103 0064 031C     		mov	r3, r0
+ 104 0066 1A1C     		mov	r2, r3
+ 105 0068 7A4B     		ldr	r3, .L10+8
+ 106 006a 1A70     		strb	r2, [r3]
+ 107              	.L4:
+ 108              	.LBB2:
+  40:.\mainLoop.c  **** 				}
+  41:.\mainLoop.c  **** 			}
+  42:.\mainLoop.c  **** 			//break;
+  43:.\mainLoop.c  **** 			
+  44:.\mainLoop.c  **** 			#ifdef AMPHENOL_DUST_H
+  45:.\mainLoop.c  **** 			case READ_DUST_STATE:
+  46:.\mainLoop.c  **** 			{
+  47:.\mainLoop.c  **** 				//#ifdef BASEBOARD_IS_ENABLED
+  48:.\mainLoop.c  **** 				GREEN_Write(~GREEN_Read());	
+ 109              		.loc 1 48 0
+ 110 006c FFF7FEFF 		bl	GREEN_Read
+ 111 0070 031C     		mov	r3, r0
+ 112 0072 DB43     		mvn	r3, r3
+ 113 0074 DBB2     		uxtb	r3, r3
+ 114 0076 181C     		mov	r0, r3
+ 115 0078 FFF7FEFF 		bl	GREEN_Write
+  49:.\mainLoop.c  **** 				//#endif
+  50:.\mainLoop.c  **** 				
+  51:.\mainLoop.c  **** //				uint32 dustOutput[2];
+  52:.\mainLoop.c  **** //				uint32 *dustPtr = dustOutput;
+  53:.\mainLoop.c  **** //				DustSamplingCycle(dustPtr);
+  54:.\mainLoop.c  **** 				DustSamplingCycle();
+ 116              		.loc 1 54 0
+ 117 007c FFF7FEFF 		bl	DustSamplingCycle
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 4
+
+
+  55:.\mainLoop.c  **** 				
+  56:.\mainLoop.c  **** 				//Conversion for DUST (LPO to PPM)
+  57:.\mainLoop.c  **** 				float POLY_X3_SP = 0.0006;
+ 118              		.loc 1 57 0
+ 119 0080 774B     		ldr	r3, .L10+20
+ 120 0082 7B63     		str	r3, [r7, #52]
+  58:.\mainLoop.c  **** 				float POLY_X2_SP = -0.0348;
+ 121              		.loc 1 58 0
+ 122 0084 774B     		ldr	r3, .L10+24
+ 123 0086 3B63     		str	r3, [r7, #48]
+  59:.\mainLoop.c  **** 				float POLY_X1_SP = 0.605;
+ 124              		.loc 1 59 0
+ 125 0088 774B     		ldr	r3, .L10+28
+ 126 008a FB62     		str	r3, [r7, #44]
+  60:.\mainLoop.c  **** 				float POLY_X0_SP = 0.2614;
+ 127              		.loc 1 60 0
+ 128 008c 774B     		ldr	r3, .L10+32
+ 129 008e BB62     		str	r3, [r7, #40]
+  61:.\mainLoop.c  **** 
+  62:.\mainLoop.c  **** 				float POLY_X2_LP = -0.0177;
+ 130              		.loc 1 62 0
+ 131 0090 774B     		ldr	r3, .L10+36
+ 132 0092 7B62     		str	r3, [r7, #36]
+  63:.\mainLoop.c  **** 				float POLY_X1_LP = 1.0182;			
+ 133              		.loc 1 63 0
+ 134 0094 774B     		ldr	r3, .L10+40
+ 135 0096 3B62     		str	r3, [r7, #32]
+  64:.\mainLoop.c  **** 				float lpoSP = ((float)SPdata)/((float)SAMPLING_WINDOW_COUNT/100);
+ 136              		.loc 1 64 0
+ 137 0098 774B     		ldr	r3, .L10+44
+ 138 009a 1B68     		ldr	r3, [r3]
+ 139 009c 181C     		mov	r0, r3
+ 140 009e FFF7FEFF 		bl	__aeabi_ui2f
+ 141 00a2 031C     		add	r3, r0, #0
+ 142 00a4 181C     		add	r0, r3, #0
+ 143 00a6 7549     		ldr	r1, .L10+48
+ 144 00a8 FFF7FEFF 		bl	__aeabi_fdiv
+ 145 00ac 031C     		add	r3, r0, #0
+ 146 00ae FB61     		str	r3, [r7, #28]
+  65:.\mainLoop.c  **** 				float lpoLP = ((float)LPdata)/((float)SAMPLING_WINDOW_COUNT/100);
+ 147              		.loc 1 65 0
+ 148 00b0 734B     		ldr	r3, .L10+52
+ 149 00b2 1B68     		ldr	r3, [r3]
+ 150 00b4 181C     		mov	r0, r3
+ 151 00b6 FFF7FEFF 		bl	__aeabi_ui2f
+ 152 00ba 031C     		add	r3, r0, #0
+ 153 00bc 181C     		add	r0, r3, #0
+ 154 00be 6F49     		ldr	r1, .L10+48
+ 155 00c0 FFF7FEFF 		bl	__aeabi_fdiv
+ 156 00c4 031C     		add	r3, r0, #0
+ 157 00c6 BB61     		str	r3, [r7, #24]
+  66:.\mainLoop.c  **** //				float lpoSP = ((float)dustOutput[0])/((float)SAMPLING_WINDOW_COUNT/100);
+  67:.\mainLoop.c  **** //				float lpoLP = ((float)dustOutput[1])/((float)SAMPLING_WINDOW_COUNT/100);
+  68:.\mainLoop.c  **** 				
+  69:.\mainLoop.c  **** 				dataArray[SP_DATA_INDEX] = (lpoSP*lpoSP*lpoSP*POLY_X3_SP)+(lpoSP*lpoSP*POLY_X2_SP)+(lpoSP*POLY_
+ 158              		.loc 1 69 0
+ 159 00c8 F869     		ldr	r0, [r7, #28]
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 5
+
+
+ 160 00ca F969     		ldr	r1, [r7, #28]
+ 161 00cc FFF7FEFF 		bl	__aeabi_fmul
+ 162 00d0 031C     		add	r3, r0, #0
+ 163 00d2 181C     		add	r0, r3, #0
+ 164 00d4 F969     		ldr	r1, [r7, #28]
+ 165 00d6 FFF7FEFF 		bl	__aeabi_fmul
+ 166 00da 031C     		add	r3, r0, #0
+ 167 00dc 181C     		add	r0, r3, #0
+ 168 00de 796B     		ldr	r1, [r7, #52]
+ 169 00e0 FFF7FEFF 		bl	__aeabi_fmul
+ 170 00e4 031C     		add	r3, r0, #0
+ 171 00e6 1C1C     		add	r4, r3, #0
+ 172 00e8 F869     		ldr	r0, [r7, #28]
+ 173 00ea F969     		ldr	r1, [r7, #28]
+ 174 00ec FFF7FEFF 		bl	__aeabi_fmul
+ 175 00f0 031C     		add	r3, r0, #0
+ 176 00f2 181C     		add	r0, r3, #0
+ 177 00f4 396B     		ldr	r1, [r7, #48]
+ 178 00f6 FFF7FEFF 		bl	__aeabi_fmul
+ 179 00fa 031C     		add	r3, r0, #0
+ 180 00fc 201C     		add	r0, r4, #0
+ 181 00fe 191C     		add	r1, r3, #0
+ 182 0100 FFF7FEFF 		bl	__aeabi_fadd
+ 183 0104 031C     		add	r3, r0, #0
+ 184 0106 1C1C     		add	r4, r3, #0
+ 185 0108 F869     		ldr	r0, [r7, #28]
+ 186 010a F96A     		ldr	r1, [r7, #44]
+ 187 010c FFF7FEFF 		bl	__aeabi_fmul
+ 188 0110 031C     		add	r3, r0, #0
+ 189 0112 201C     		add	r0, r4, #0
+ 190 0114 191C     		add	r1, r3, #0
+ 191 0116 FFF7FEFF 		bl	__aeabi_fadd
+ 192 011a 031C     		add	r3, r0, #0
+ 193 011c 181C     		add	r0, r3, #0
+ 194 011e B96A     		ldr	r1, [r7, #40]
+ 195 0120 FFF7FEFF 		bl	__aeabi_fadd
+ 196 0124 031C     		add	r3, r0, #0
+ 197 0126 1A1C     		add	r2, r3, #0
+ 198 0128 564B     		ldr	r3, .L10+56
+ 199 012a 1A60     		str	r2, [r3]
+  70:.\mainLoop.c  **** 				//write_to_eeprom(dataArray[SP_DATA_INDEX]);
+  71:.\mainLoop.c  **** 				//dataArray[SP_DATA_INDEX] = 1;
+  72:.\mainLoop.c  **** 				dataArray[LP_DATA_INDEX] = (lpoLP*lpoLP*POLY_X2_LP)+(lpoLP*POLY_X1_LP);
+ 200              		.loc 1 72 0
+ 201 012c B869     		ldr	r0, [r7, #24]
+ 202 012e B969     		ldr	r1, [r7, #24]
+ 203 0130 FFF7FEFF 		bl	__aeabi_fmul
+ 204 0134 031C     		add	r3, r0, #0
+ 205 0136 181C     		add	r0, r3, #0
+ 206 0138 796A     		ldr	r1, [r7, #36]
+ 207 013a FFF7FEFF 		bl	__aeabi_fmul
+ 208 013e 031C     		add	r3, r0, #0
+ 209 0140 1C1C     		add	r4, r3, #0
+ 210 0142 B869     		ldr	r0, [r7, #24]
+ 211 0144 396A     		ldr	r1, [r7, #32]
+ 212 0146 FFF7FEFF 		bl	__aeabi_fmul
+ 213 014a 031C     		add	r3, r0, #0
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 6
+
+
+ 214 014c 201C     		add	r0, r4, #0
+ 215 014e 191C     		add	r1, r3, #0
+ 216 0150 FFF7FEFF 		bl	__aeabi_fadd
+ 217 0154 031C     		add	r3, r0, #0
+ 218 0156 1A1C     		add	r2, r3, #0
+ 219 0158 4A4B     		ldr	r3, .L10+56
+ 220 015a 5A60     		str	r2, [r3, #4]
+  73:.\mainLoop.c  **** 				//write_to_eeprom(dataArray[LP_DATA_INDEX]);
+  74:.\mainLoop.c  **** 				currentState = READ_TH_STATE;	
+ 221              		.loc 1 74 0
+ 222 015c 3D4B     		ldr	r3, .L10+8
+ 223 015e 0322     		mov	r2, #3
+ 224 0160 1A70     		strb	r2, [r3]
+ 225              	.L7:
+ 226              	.LBE2:
+  75:.\mainLoop.c  **** 			}
+  76:.\mainLoop.c  **** 			//break;		
+  77:.\mainLoop.c  **** 			#endif
+  78:.\mainLoop.c  **** 		
+  79:.\mainLoop.c  **** 			#ifdef SI_7020_H
+  80:.\mainLoop.c  **** 			case READ_TH_STATE: //--> IDLE or SLEEP
+  81:.\mainLoop.c  **** 			{
+  82:.\mainLoop.c  **** 				//#ifdef BASEBOARD_IS_ENABLED
+  83:.\mainLoop.c  **** 				BLUE_Write(~BLUE_Read());
+ 227              		.loc 1 83 0
+ 228 0162 FFF7FEFF 		bl	BLUE_Read
+ 229 0166 031C     		mov	r3, r0
+ 230 0168 DB43     		mvn	r3, r3
+ 231 016a DBB2     		uxtb	r3, r3
+ 232 016c 181C     		mov	r0, r3
+ 233 016e FFF7FEFF 		bl	BLUE_Write
+  84:.\mainLoop.c  **** 				//#endif
+  85:.\mainLoop.c  **** 				dataArray[TEMPERATURE_DATA_INDEX] = MeasureTemperature();
+ 234              		.loc 1 85 0
+ 235 0172 FFF7FEFF 		bl	MeasureTemperature
+ 236 0176 021C     		add	r2, r0, #0
+ 237 0178 424B     		ldr	r3, .L10+56
+ 238 017a 9A60     		str	r2, [r3, #8]
+  86:.\mainLoop.c  **** 				dataArray[HUMIDITY_DATA_INDEX] = MeasureHumidity();
+ 239              		.loc 1 86 0
+ 240 017c FFF7FEFF 		bl	MeasureHumidity
+ 241 0180 021C     		add	r2, r0, #0
+ 242 0182 404B     		ldr	r3, .L10+56
+ 243 0184 DA60     		str	r2, [r3, #12]
+  87:.\mainLoop.c  **** 				currentState = READ_CO2_STATE;
+ 244              		.loc 1 87 0
+ 245 0186 334B     		ldr	r3, .L10+8
+ 246 0188 0B22     		mov	r2, #11
+ 247 018a 1A70     		strb	r2, [r3]
+ 248              	.L8:
+ 249              	.LBB3:
+  88:.\mainLoop.c  **** 			}
+  89:.\mainLoop.c  **** 			//break;
+  90:.\mainLoop.c  **** 			#endif
+  91:.\mainLoop.c  **** 			
+  92:.\mainLoop.c  **** 			#ifdef FUNCTIONS_COZIR_H			
+  93:.\mainLoop.c  **** 
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 7
+
+
+  94:.\mainLoop.c  **** 			case READ_CO2_STATE:
+  95:.\mainLoop.c  **** 			{			
+  96:.\mainLoop.c  **** 				Status_LED_Write(~Status_LED_Read());
+ 250              		.loc 1 96 0
+ 251 018c FFF7FEFF 		bl	Status_LED_Read
+ 252 0190 031C     		mov	r3, r0
+ 253 0192 DB43     		mvn	r3, r3
+ 254 0194 DBB2     		uxtb	r3, r3
+ 255 0196 181C     		mov	r0, r3
+ 256 0198 FFF7FEFF 		bl	Status_LED_Write
+  97:.\mainLoop.c  **** 				
+  98:.\mainLoop.c  **** 				//Set Cozir CO2 sensor to active mode before reading
+  99:.\mainLoop.c  **** 				uint8 response = 0u;
+ 257              		.loc 1 99 0
+ 258 019c 3B1C     		mov	r3, r7
+ 259 019e 0F33     		add	r3, r3, #15
+ 260 01a0 0022     		mov	r2, #0
+ 261 01a2 1A70     		strb	r2, [r3]
+ 100:.\mainLoop.c  **** 				Cozir_WriteMode(POLLING_MODE,&response);
+ 262              		.loc 1 100 0
+ 263 01a4 3B1C     		mov	r3, r7
+ 264 01a6 0F33     		add	r3, r3, #15
+ 265 01a8 3220     		mov	r0, #50
+ 266 01aa 191C     		mov	r1, r3
+ 267 01ac FFF7FEFF 		bl	Cozir_WriteMode
+ 101:.\mainLoop.c  **** 				if(response != POLLING_MODE)
+ 268              		.loc 1 101 0
+ 269 01b0 3B1C     		mov	r3, r7
+ 270 01b2 0F33     		add	r3, r3, #15
+ 271 01b4 1B78     		ldrb	r3, [r3]
+ 272 01b6 322B     		cmp	r3, #50
+ 273 01b8 05D0     		beq	.L9
+ 102:.\mainLoop.c  **** 				{	
+ 103:.\mainLoop.c  **** 					Cozir_WriteMode(POLLING_MODE,&response);				
+ 274              		.loc 1 103 0
+ 275 01ba 3B1C     		mov	r3, r7
+ 276 01bc 0F33     		add	r3, r3, #15
+ 277 01be 3220     		mov	r0, #50
+ 278 01c0 191C     		mov	r1, r3
+ 279 01c2 FFF7FEFF 		bl	Cozir_WriteMode
+ 280              	.L9:
+ 104:.\mainLoop.c  **** 				}
+ 105:.\mainLoop.c  **** 
+ 106:.\mainLoop.c  **** 				uint8 digits[5] = {0u,0u,0u,0u,0u};//holds returned CO2 PPM measurement in digit form
+ 281              		.loc 1 106 0
+ 282 01c6 3B1C     		mov	r3, r7
+ 283 01c8 0833     		add	r3, r3, #8
+ 284 01ca 0022     		mov	r2, #0
+ 285 01cc 1A70     		strb	r2, [r3]
+ 286 01ce 3B1C     		mov	r3, r7
+ 287 01d0 0833     		add	r3, r3, #8
+ 288 01d2 0022     		mov	r2, #0
+ 289 01d4 5A70     		strb	r2, [r3, #1]
+ 290 01d6 3B1C     		mov	r3, r7
+ 291 01d8 0833     		add	r3, r3, #8
+ 292 01da 0022     		mov	r2, #0
+ 293 01dc 9A70     		strb	r2, [r3, #2]
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 8
+
+
+ 294 01de 3B1C     		mov	r3, r7
+ 295 01e0 0833     		add	r3, r3, #8
+ 296 01e2 0022     		mov	r2, #0
+ 297 01e4 DA70     		strb	r2, [r3, #3]
+ 298 01e6 3B1C     		mov	r3, r7
+ 299 01e8 0833     		add	r3, r3, #8
+ 300 01ea 0022     		mov	r2, #0
+ 301 01ec 1A71     		strb	r2, [r3, #4]
+ 107:.\mainLoop.c  **** 				uint8 *digitsPtr = digits;
+ 302              		.loc 1 107 0
+ 303 01ee 3B1C     		mov	r3, r7
+ 304 01f0 0833     		add	r3, r3, #8
+ 305 01f2 7B61     		str	r3, [r7, #20]
+ 108:.\mainLoop.c  **** 				uint8 size;
+ 109:.\mainLoop.c  **** 				
+ 110:.\mainLoop.c  **** 				//returns CO2 PPM measurement in digit form
+ 111:.\mainLoop.c  **** 				ReadCO2(digitsPtr,&size);
+ 306              		.loc 1 111 0
+ 307 01f4 7A69     		ldr	r2, [r7, #20]
+ 308 01f6 FB1D     		add	r3, r7, #7
+ 309 01f8 101C     		mov	r0, r2
+ 310 01fa 191C     		mov	r1, r3
+ 311 01fc FFF7FEFF 		bl	ReadCO2
+ 112:.\mainLoop.c  **** 				
+ 113:.\mainLoop.c  **** 				//Convert individual digits of the CO2 PPM measurement into a single uint32 value
+ 114:.\mainLoop.c  **** 				uint32 convertedVal = ConvertDigitsToU16(digitsPtr,size);
+ 312              		.loc 1 114 0
+ 313 0200 FB1D     		add	r3, r7, #7
+ 314 0202 1B78     		ldrb	r3, [r3]
+ 315 0204 7A69     		ldr	r2, [r7, #20]
+ 316 0206 101C     		mov	r0, r2
+ 317 0208 191C     		mov	r1, r3
+ 318 020a FFF7FEFF 		bl	ConvertDigitsToU16
+ 319 020e 031C     		mov	r3, r0
+ 320 0210 3B61     		str	r3, [r7, #16]
+ 115:.\mainLoop.c  **** 				
+ 116:.\mainLoop.c  **** 				//store in global array
+ 117:.\mainLoop.c  **** 				dataArray[CO2_DATA_INDEX] = (float)convertedVal;
+ 321              		.loc 1 117 0
+ 322 0212 3869     		ldr	r0, [r7, #16]
+ 323 0214 FFF7FEFF 		bl	__aeabi_ui2f
+ 324 0218 021C     		add	r2, r0, #0
+ 325 021a 1A4B     		ldr	r3, .L10+56
+ 326 021c 1A61     		str	r2, [r3, #16]
+ 118:.\mainLoop.c  **** 				
+ 119:.\mainLoop.c  **** 				BLUE_Write(LED_OFF);
+ 327              		.loc 1 119 0
+ 328 021e 0120     		mov	r0, #1
+ 329 0220 FFF7FEFF 		bl	BLUE_Write
+ 120:.\mainLoop.c  **** 				GREEN_Write(LED_OFF);
+ 330              		.loc 1 120 0
+ 331 0224 0120     		mov	r0, #1
+ 332 0226 FFF7FEFF 		bl	GREEN_Write
+ 121:.\mainLoop.c  **** 				Status_LED_Write(LED_OFF);
+ 333              		.loc 1 121 0
+ 334 022a 0120     		mov	r0, #1
+ 335 022c FFF7FEFF 		bl	Status_LED_Write
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 9
+
+
+ 122:.\mainLoop.c  **** 				
+ 123:.\mainLoop.c  **** 				currentState = IDLE_STATE;
+ 336              		.loc 1 123 0
+ 337 0230 084B     		ldr	r3, .L10+8
+ 338 0232 0122     		mov	r2, #1
+ 339 0234 1A70     		strb	r2, [r3]
+ 340              	.L3:
+ 341              	.LBE3:
+ 124:.\mainLoop.c  **** 			}
+ 125:.\mainLoop.c  **** 			//break;
+ 126:.\mainLoop.c  **** 			#if 0
+ 127:.\mainLoop.c  **** 			case COZIR_STANDBY_STATE:
+ 128:.\mainLoop.c  **** 			{				
+ 129:.\mainLoop.c  **** 				uint8 mode = 0u;
+ 130:.\mainLoop.c  **** 				currentState = Cozir_WriteMode(COMMAND_MODE,&mode);
+ 131:.\mainLoop.c  **** 				if(mode != COMMAND_MODE)
+ 132:.\mainLoop.c  **** 				{
+ 133:.\mainLoop.c  **** 					Cozir_WriteMode(COMMAND_MODE,&mode);
+ 134:.\mainLoop.c  **** 					if(mode != COMMAND_MODE)
+ 135:.\mainLoop.c  **** 					{
+ 136:.\mainLoop.c  **** 						#ifdef XBEE_IS_ENABLED
+ 137:.\mainLoop.c  **** 						XBee_PutChar(mode);//test
+ 138:.\mainLoop.c  **** 						#endif
+ 139:.\mainLoop.c  **** 					}
+ 140:.\mainLoop.c  **** 				}
+ 141:.\mainLoop.c  **** 			}
+ 142:.\mainLoop.c  **** 			//break;
+ 143:.\mainLoop.c  **** 			#endif
+ 144:.\mainLoop.c  **** 			#endif		
+ 145:.\mainLoop.c  **** 
+ 146:.\mainLoop.c  **** 			default:
+ 147:.\mainLoop.c  **** 			{
+ 148:.\mainLoop.c  **** 				//default handling code(add erro handling code)
+ 149:.\mainLoop.c  **** 				if(currentState >= (MAX_STATE_VALUE))
+ 342              		.loc 1 149 0
+ 343 0236 074B     		ldr	r3, .L10+8
+ 344 0238 1B78     		ldrb	r3, [r3]
+ 345 023a 0C2B     		cmp	r3, #12
+ 346 023c 02D9     		bls	.L1
+ 150:.\mainLoop.c  **** 				{
+ 151:.\mainLoop.c  **** 					currentState = IDLE_STATE;
+ 347              		.loc 1 151 0
+ 348 023e 054B     		ldr	r3, .L10+8
+ 349 0240 0122     		mov	r2, #1
+ 350 0242 1A70     		strb	r2, [r3]
+ 351              	.L1:
+ 152:.\mainLoop.c  **** 				}
+ 153:.\mainLoop.c  **** 			}
+ 154:.\mainLoop.c  **** 		}//end of switch-case
+ 155:.\mainLoop.c  **** 	}//if(FALSE == (--wait))
+ 156:.\mainLoop.c  **** }
+ 352              		.loc 1 156 0
+ 353 0244 BD46     		mov	sp, r7
+ 354 0246 0FB0     		add	sp, sp, #60
+ 355              		@ sp needed
+ 356 0248 90BD     		pop	{r4, r7, pc}
+ 357              	.L11:
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 10
+
+
+ 358 024a C046     		.align	2
+ 359              	.L10:
+ 360 024c 00000000 		.word	wait
+ 361 0250 9CFF6300 		.word	6553500
+ 362 0254 04000000 		.word	currentState.6982
+ 363 0258 05000000 		.word	nextState.6983
+ 364 025c 06000000 		.word	currentReadMode.6984
+ 365 0260 52491D3A 		.word	974997842
+ 366 0264 728A0EBD 		.word	-1123120526
+ 367 0268 48E11A3F 		.word	1058726216
+ 368 026c 39D6853E 		.word	1048958521
+ 369 0270 97FF90BC 		.word	-1131348073
+ 370 0274 6154823F 		.word	1065505889
+ 371 0278 00000000 		.word	SPdata
+ 372 027c 00BA5B4A 		.word	1247525376
+ 373 0280 00000000 		.word	LPdata
+ 374 0284 00000000 		.word	dataArray
+ 375              		.cfi_endproc
+ 376              	.LFE35:
+ 377              		.size	HandleDataCollection, .-HandleDataCollection
+ 378              		.data
+ 379              		.type	currentState.6982, %object
+ 380              		.size	currentState.6982, 1
+ 381              	currentState.6982:
+ 382 0004 01       		.byte	1
+ 383              		.type	nextState.6983, %object
+ 384              		.size	nextState.6983, 1
+ 385              	nextState.6983:
+ 386 0005 03       		.byte	3
+ 387              		.type	currentReadMode.6984, %object
+ 388              		.size	currentReadMode.6984, 1
+ 389              	currentReadMode.6984:
+ 390 0006 03       		.byte	3
+ 391 0007 00       		.align	2
+ 392              		.type	dataPtr.6986, %object
+ 393              		.size	dataPtr.6986, 4
+ 394              	dataPtr.6986:
+ 395 0008 0C000000 		.word	dataBuf.6985
+ 396              		.align	2
+ 397              		.type	dataBuf.6985, %object
+ 398              		.size	dataBuf.6985, 12
+ 399              	dataBuf.6985:
+ 400 000c 01000000 		.word	1
+ 401 0010 01000000 		.word	1
+ 402 0014 01000000 		.word	1
+ 403              		.text
+ 404              	.Letext0:
+ 405              		.file 2 ".\\Generated_Source\\PSoC4/cytypes.h"
+ 406              		.file 3 ".\\Generated_Source\\PSoC4/BLE_Stack.h"
+ 407              		.section	.debug_info,"",%progbits
+ 408              	.Ldebug_info0:
+ 409 0000 B8030000 		.4byte	0x3b8
+ 410 0004 0400     		.2byte	0x4
+ 411 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 412 000a 04       		.byte	0x4
+ 413 000b 01       		.uleb128 0x1
+ 414 000c 6B080000 		.4byte	.LASF91
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 11
+
+
+ 415 0010 01       		.byte	0x1
+ 416 0011 DE070000 		.4byte	.LASF92
+ 417 0015 12020000 		.4byte	.LASF93
+ 418 0019 00000000 		.4byte	.Ldebug_ranges0+0
+ 419 001d 00000000 		.4byte	0
+ 420 0021 00000000 		.4byte	.Ldebug_line0
+ 421 0025 02       		.uleb128 0x2
+ 422 0026 01       		.byte	0x1
+ 423 0027 06       		.byte	0x6
+ 424 0028 65040000 		.4byte	.LASF0
+ 425 002c 02       		.uleb128 0x2
+ 426 002d 01       		.byte	0x1
+ 427 002e 08       		.byte	0x8
+ 428 002f 1A040000 		.4byte	.LASF1
+ 429 0033 02       		.uleb128 0x2
+ 430 0034 02       		.byte	0x2
+ 431 0035 05       		.byte	0x5
+ 432 0036 59000000 		.4byte	.LASF2
+ 433 003a 02       		.uleb128 0x2
+ 434 003b 02       		.byte	0x2
+ 435 003c 07       		.byte	0x7
+ 436 003d 65050000 		.4byte	.LASF3
+ 437 0041 02       		.uleb128 0x2
+ 438 0042 04       		.byte	0x4
+ 439 0043 05       		.byte	0x5
+ 440 0044 CB020000 		.4byte	.LASF4
+ 441 0048 02       		.uleb128 0x2
+ 442 0049 04       		.byte	0x4
+ 443 004a 07       		.byte	0x7
+ 444 004b F6040000 		.4byte	.LASF5
+ 445 004f 02       		.uleb128 0x2
+ 446 0050 08       		.byte	0x8
+ 447 0051 05       		.byte	0x5
+ 448 0052 A6020000 		.4byte	.LASF6
+ 449 0056 02       		.uleb128 0x2
+ 450 0057 08       		.byte	0x8
+ 451 0058 07       		.byte	0x7
+ 452 0059 A4000000 		.4byte	.LASF7
+ 453 005d 03       		.uleb128 0x3
+ 454 005e 04       		.byte	0x4
+ 455 005f 05       		.byte	0x5
+ 456 0060 696E7400 		.ascii	"int\000"
+ 457 0064 02       		.uleb128 0x2
+ 458 0065 04       		.byte	0x4
+ 459 0066 07       		.byte	0x7
+ 460 0067 CE040000 		.4byte	.LASF8
+ 461 006b 04       		.uleb128 0x4
+ 462 006c EE030000 		.4byte	.LASF9
+ 463 0070 02       		.byte	0x2
+ 464 0071 A1       		.byte	0xa1
+ 465 0072 2C000000 		.4byte	0x2c
+ 466 0076 04       		.uleb128 0x4
+ 467 0077 12060000 		.4byte	.LASF10
+ 468 007b 02       		.byte	0x2
+ 469 007c A3       		.byte	0xa3
+ 470 007d 48000000 		.4byte	0x48
+ 471 0081 02       		.uleb128 0x2
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 12
+
+
+ 472 0082 04       		.byte	0x4
+ 473 0083 04       		.byte	0x4
+ 474 0084 0C020000 		.4byte	.LASF11
+ 475 0088 02       		.uleb128 0x2
+ 476 0089 08       		.byte	0x8
+ 477 008a 04       		.byte	0x4
+ 478 008b 5A060000 		.4byte	.LASF12
+ 479 008f 02       		.uleb128 0x2
+ 480 0090 01       		.byte	0x1
+ 481 0091 08       		.byte	0x8
+ 482 0092 A1050000 		.4byte	.LASF13
+ 483 0096 02       		.uleb128 0x2
+ 484 0097 04       		.byte	0x4
+ 485 0098 07       		.byte	0x7
+ 486 0099 9B000000 		.4byte	.LASF14
+ 487 009d 05       		.uleb128 0x5
+ 488 009e 01       		.byte	0x1
+ 489 009f 03       		.byte	0x3
+ 490 00a0 52       		.byte	0x52
+ 491 00a1 0D020000 		.4byte	0x20d
+ 492 00a5 06       		.uleb128 0x6
+ 493 00a6 A6010000 		.4byte	.LASF15
+ 494 00aa 00       		.sleb128 0
+ 495 00ab 06       		.uleb128 0x6
+ 496 00ac 11010000 		.4byte	.LASF16
+ 497 00b0 01       		.sleb128 1
+ 498 00b1 06       		.uleb128 0x6
+ 499 00b2 89070000 		.4byte	.LASF17
+ 500 00b6 02       		.sleb128 2
+ 501 00b7 06       		.uleb128 0x6
+ 502 00b8 92060000 		.4byte	.LASF18
+ 503 00bc 03       		.sleb128 3
+ 504 00bd 06       		.uleb128 0x6
+ 505 00be DB000000 		.4byte	.LASF19
+ 506 00c2 04       		.sleb128 4
+ 507 00c3 06       		.uleb128 0x6
+ 508 00c4 6E030000 		.4byte	.LASF20
+ 509 00c8 05       		.sleb128 5
+ 510 00c9 06       		.uleb128 0x6
+ 511 00ca F0060000 		.4byte	.LASF21
+ 512 00ce 20       		.sleb128 32
+ 513 00cf 06       		.uleb128 0x6
+ 514 00d0 08050000 		.4byte	.LASF22
+ 515 00d4 21       		.sleb128 33
+ 516 00d5 06       		.uleb128 0x6
+ 517 00d6 0B000000 		.4byte	.LASF23
+ 518 00da 22       		.sleb128 34
+ 519 00db 06       		.uleb128 0x6
+ 520 00dc 9C030000 		.4byte	.LASF24
+ 521 00e0 23       		.sleb128 35
+ 522 00e1 06       		.uleb128 0x6
+ 523 00e2 B2040000 		.4byte	.LASF25
+ 524 00e6 24       		.sleb128 36
+ 525 00e7 06       		.uleb128 0x6
+ 526 00e8 63000000 		.4byte	.LASF26
+ 527 00ec 25       		.sleb128 37
+ 528 00ed 06       		.uleb128 0x6
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 13
+
+
+ 529 00ee 25030000 		.4byte	.LASF27
+ 530 00f2 26       		.sleb128 38
+ 531 00f3 06       		.uleb128 0x6
+ 532 00f4 F5020000 		.4byte	.LASF28
+ 533 00f8 27       		.sleb128 39
+ 534 00f9 06       		.uleb128 0x6
+ 535 00fa 15080000 		.4byte	.LASF29
+ 536 00fe 28       		.sleb128 40
+ 537 00ff 06       		.uleb128 0x6
+ 538 0100 48050000 		.4byte	.LASF30
+ 539 0104 29       		.sleb128 41
+ 540 0105 06       		.uleb128 0x6
+ 541 0106 78050000 		.4byte	.LASF31
+ 542 010a 2A       		.sleb128 42
+ 543 010b 06       		.uleb128 0x6
+ 544 010c BF070000 		.4byte	.LASF32
+ 545 0110 2B       		.sleb128 43
+ 546 0111 06       		.uleb128 0x6
+ 547 0112 42010000 		.4byte	.LASF33
+ 548 0116 2C       		.sleb128 44
+ 549 0117 06       		.uleb128 0x6
+ 550 0118 2F000000 		.4byte	.LASF34
+ 551 011c C000     		.sleb128 64
+ 552 011e 06       		.uleb128 0x6
+ 553 011f DB040000 		.4byte	.LASF35
+ 554 0123 C100     		.sleb128 65
+ 555 0125 06       		.uleb128 0x6
+ 556 0126 7D000000 		.4byte	.LASF36
+ 557 012a C200     		.sleb128 66
+ 558 012c 06       		.uleb128 0x6
+ 559 012d 24010000 		.4byte	.LASF37
+ 560 0131 C300     		.sleb128 67
+ 561 0133 06       		.uleb128 0x6
+ 562 0134 6B070000 		.4byte	.LASF38
+ 563 0138 C400     		.sleb128 68
+ 564 013a 06       		.uleb128 0x6
+ 565 013b 26070000 		.4byte	.LASF39
+ 566 013f C500     		.sleb128 69
+ 567 0141 06       		.uleb128 0x6
+ 568 0142 F0000000 		.4byte	.LASF40
+ 569 0146 C600     		.sleb128 70
+ 570 0148 06       		.uleb128 0x6
+ 571 0149 47040000 		.4byte	.LASF41
+ 572 014d C700     		.sleb128 71
+ 573 014f 06       		.uleb128 0x6
+ 574 0150 8B040000 		.4byte	.LASF42
+ 575 0154 C800     		.sleb128 72
+ 576 0156 06       		.uleb128 0x6
+ 577 0157 73020000 		.4byte	.LASF43
+ 578 015b C900     		.sleb128 73
+ 579 015d 06       		.uleb128 0x6
+ 580 015e D5050000 		.4byte	.LASF44
+ 581 0162 CA00     		.sleb128 74
+ 582 0164 06       		.uleb128 0x6
+ 583 0165 66010000 		.4byte	.LASF45
+ 584 0169 CB00     		.sleb128 75
+ 585 016b 06       		.uleb128 0x6
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 14
+
+
+ 586 016c 71040000 		.4byte	.LASF46
+ 587 0170 CC00     		.sleb128 76
+ 588 0172 06       		.uleb128 0x6
+ 589 0173 8C020000 		.4byte	.LASF47
+ 590 0177 CD00     		.sleb128 77
+ 591 0179 06       		.uleb128 0x6
+ 592 017a 4D070000 		.4byte	.LASF48
+ 593 017e CE00     		.sleb128 78
+ 594 0180 06       		.uleb128 0x6
+ 595 0181 28040000 		.4byte	.LASF49
+ 596 0185 CF00     		.sleb128 79
+ 597 0187 06       		.uleb128 0x6
+ 598 0188 EB070000 		.4byte	.LASF50
+ 599 018c D000     		.sleb128 80
+ 600 018e 06       		.uleb128 0x6
+ 601 018f F3050000 		.4byte	.LASF51
+ 602 0193 D100     		.sleb128 81
+ 603 0195 06       		.uleb128 0x6
+ 604 0196 4D030000 		.4byte	.LASF52
+ 605 019a D200     		.sleb128 82
+ 606 019c 06       		.uleb128 0x6
+ 607 019d D4020000 		.4byte	.LASF53
+ 608 01a1 D300     		.sleb128 83
+ 609 01a3 06       		.uleb128 0x6
+ 610 01a4 85010000 		.4byte	.LASF54
+ 611 01a8 D400     		.sleb128 84
+ 612 01aa 06       		.uleb128 0x6
+ 613 01ab 47080000 		.4byte	.LASF55
+ 614 01af D500     		.sleb128 85
+ 615 01b1 06       		.uleb128 0x6
+ 616 01b2 F4030000 		.4byte	.LASF56
+ 617 01b6 F000     		.sleb128 112
+ 618 01b8 06       		.uleb128 0x6
+ 619 01b9 CA060000 		.4byte	.LASF57
+ 620 01bd F100     		.sleb128 113
+ 621 01bf 06       		.uleb128 0x6
+ 622 01c0 B3050000 		.4byte	.LASF58
+ 623 01c4 F200     		.sleb128 114
+ 624 01c6 06       		.uleb128 0x6
+ 625 01c7 C8010000 		.4byte	.LASF59
+ 626 01cb F300     		.sleb128 115
+ 627 01cd 06       		.uleb128 0x6
+ 628 01ce C2030000 		.4byte	.LASF60
+ 629 01d2 F400     		.sleb128 116
+ 630 01d4 06       		.uleb128 0x6
+ 631 01d5 27050000 		.4byte	.LASF61
+ 632 01d9 F500     		.sleb128 117
+ 633 01db 06       		.uleb128 0x6
+ 634 01dc EB010000 		.4byte	.LASF62
+ 635 01e0 F600     		.sleb128 118
+ 636 01e2 06       		.uleb128 0x6
+ 637 01e3 AB060000 		.4byte	.LASF63
+ 638 01e7 F700     		.sleb128 119
+ 639 01e9 06       		.uleb128 0x6
+ 640 01ea 37060000 		.4byte	.LASF64
+ 641 01ee F800     		.sleb128 120
+ 642 01f0 06       		.uleb128 0x6
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 15
+
+
+ 643 01f1 6A060000 		.4byte	.LASF65
+ 644 01f5 F900     		.sleb128 121
+ 645 01f7 06       		.uleb128 0x6
+ 646 01f8 9B070000 		.4byte	.LASF66
+ 647 01fc FA00     		.sleb128 122
+ 648 01fe 06       		.uleb128 0x6
+ 649 01ff 19060000 		.4byte	.LASF67
+ 650 0203 FA01     		.sleb128 250
+ 651 0205 06       		.uleb128 0x6
+ 652 0206 E0030000 		.4byte	.LASF68
+ 653 020a FF01     		.sleb128 255
+ 654 020c 00       		.byte	0
+ 655 020d 07       		.uleb128 0x7
+ 656 020e 04       		.byte	0x4
+ 657 020f 6B000000 		.4byte	0x6b
+ 658 0213 08       		.uleb128 0x8
+ 659 0214 C6000000 		.4byte	.LASF94
+ 660 0218 01       		.byte	0x1
+ 661 0219 12       		.byte	0x12
+ 662 021a 00000000 		.4byte	.LFB35
+ 663 021e 88020000 		.4byte	.LFE35-.LFB35
+ 664 0222 01       		.uleb128 0x1
+ 665 0223 9C       		.byte	0x9c
+ 666 0224 4D030000 		.4byte	0x34d
+ 667 0228 09       		.uleb128 0x9
+ 668 0229 A6050000 		.4byte	.LASF69
+ 669 022d 01       		.byte	0x1
+ 670 022e 15       		.byte	0x15
+ 671 022f 6B000000 		.4byte	0x6b
+ 672 0233 05       		.uleb128 0x5
+ 673 0234 03       		.byte	0x3
+ 674 0235 04000000 		.4byte	currentState.6982
+ 675 0239 09       		.uleb128 0x9
+ 676 023a 14030000 		.4byte	.LASF70
+ 677 023e 01       		.byte	0x1
+ 678 023f 16       		.byte	0x16
+ 679 0240 6B000000 		.4byte	0x6b
+ 680 0244 05       		.uleb128 0x5
+ 681 0245 03       		.byte	0x3
+ 682 0246 05000000 		.4byte	nextState.6983
+ 683 024a 09       		.uleb128 0x9
+ 684 024b 37080000 		.4byte	.LASF71
+ 685 024f 01       		.byte	0x1
+ 686 0250 17       		.byte	0x17
+ 687 0251 6B000000 		.4byte	0x6b
+ 688 0255 05       		.uleb128 0x5
+ 689 0256 03       		.byte	0x3
+ 690 0257 06000000 		.4byte	currentReadMode.6984
+ 691 025b 09       		.uleb128 0x9
+ 692 025c E7080000 		.4byte	.LASF72
+ 693 0260 01       		.byte	0x1
+ 694 0261 19       		.byte	0x19
+ 695 0262 4D030000 		.4byte	0x34d
+ 696 0266 05       		.uleb128 0x5
+ 697 0267 03       		.byte	0x3
+ 698 0268 0C000000 		.4byte	dataBuf.6985
+ 699 026c 09       		.uleb128 0x9
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 16
+
+
+ 700 026d 1F050000 		.4byte	.LASF73
+ 701 0271 01       		.byte	0x1
+ 702 0272 1A       		.byte	0x1a
+ 703 0273 5D030000 		.4byte	0x35d
+ 704 0277 05       		.uleb128 0x5
+ 705 0278 03       		.byte	0x3
+ 706 0279 08000000 		.4byte	dataPtr.6986
+ 707 027d 0A       		.uleb128 0xa
+ 708 027e 6C000000 		.4byte	.LBB2
+ 709 0282 F6000000 		.4byte	.LBE2-.LBB2
+ 710 0286 FB020000 		.4byte	0x2fb
+ 711 028a 09       		.uleb128 0x9
+ 712 028b 1B070000 		.4byte	.LASF74
+ 713 028f 01       		.byte	0x1
+ 714 0290 39       		.byte	0x39
+ 715 0291 81000000 		.4byte	0x81
+ 716 0295 02       		.uleb128 0x2
+ 717 0296 91       		.byte	0x91
+ 718 0297 6C       		.sleb128 -20
+ 719 0298 09       		.uleb128 0x9
+ 720 0299 BD010000 		.4byte	.LASF75
+ 721 029d 01       		.byte	0x1
+ 722 029e 3A       		.byte	0x3a
+ 723 029f 81000000 		.4byte	0x81
+ 724 02a3 02       		.uleb128 0x2
+ 725 02a4 91       		.byte	0x91
+ 726 02a5 68       		.sleb128 -24
+ 727 02a6 09       		.uleb128 0x9
+ 728 02a7 00000000 		.4byte	.LASF76
+ 729 02ab 01       		.byte	0x1
+ 730 02ac 3B       		.byte	0x3b
+ 731 02ad 81000000 		.4byte	0x81
+ 732 02b1 02       		.uleb128 0x2
+ 733 02b2 91       		.byte	0x91
+ 734 02b3 64       		.sleb128 -28
+ 735 02b4 09       		.uleb128 0x9
+ 736 02b5 91030000 		.4byte	.LASF77
+ 737 02b9 01       		.byte	0x1
+ 738 02ba 3C       		.byte	0x3c
+ 739 02bb 81000000 		.4byte	0x81
+ 740 02bf 02       		.uleb128 0x2
+ 741 02c0 91       		.byte	0x91
+ 742 02c1 60       		.sleb128 -32
+ 743 02c2 09       		.uleb128 0x9
+ 744 02c3 0A080000 		.4byte	.LASF78
+ 745 02c7 01       		.byte	0x1
+ 746 02c8 3E       		.byte	0x3e
+ 747 02c9 81000000 		.4byte	0x81
+ 748 02cd 02       		.uleb128 0x2
+ 749 02ce 91       		.byte	0x91
+ 750 02cf 5C       		.sleb128 -36
+ 751 02d0 09       		.uleb128 0x9
+ 752 02d1 BB000000 		.4byte	.LASF79
+ 753 02d5 01       		.byte	0x1
+ 754 02d6 3F       		.byte	0x3f
+ 755 02d7 81000000 		.4byte	0x81
+ 756 02db 02       		.uleb128 0x2
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 17
+
+
+ 757 02dc 91       		.byte	0x91
+ 758 02dd 58       		.sleb128 -40
+ 759 02de 09       		.uleb128 0x9
+ 760 02df 49000000 		.4byte	.LASF80
+ 761 02e3 01       		.byte	0x1
+ 762 02e4 40       		.byte	0x40
+ 763 02e5 81000000 		.4byte	0x81
+ 764 02e9 02       		.uleb128 0x2
+ 765 02ea 91       		.byte	0x91
+ 766 02eb 54       		.sleb128 -44
+ 767 02ec 09       		.uleb128 0x9
+ 768 02ed CF050000 		.4byte	.LASF81
+ 769 02f1 01       		.byte	0x1
+ 770 02f2 41       		.byte	0x41
+ 771 02f3 81000000 		.4byte	0x81
+ 772 02f7 02       		.uleb128 0x2
+ 773 02f8 91       		.byte	0x91
+ 774 02f9 50       		.sleb128 -48
+ 775 02fa 00       		.byte	0
+ 776 02fb 0B       		.uleb128 0xb
+ 777 02fc 8C010000 		.4byte	.LBB3
+ 778 0300 AA000000 		.4byte	.LBE3-.LBB3
+ 779 0304 09       		.uleb128 0x9
+ 780 0305 61060000 		.4byte	.LASF82
+ 781 0309 01       		.byte	0x1
+ 782 030a 63       		.byte	0x63
+ 783 030b 6B000000 		.4byte	0x6b
+ 784 030f 02       		.uleb128 0x2
+ 785 0310 91       		.byte	0x91
+ 786 0311 47       		.sleb128 -57
+ 787 0312 09       		.uleb128 0x9
+ 788 0313 8A030000 		.4byte	.LASF83
+ 789 0317 01       		.byte	0x1
+ 790 0318 6A       		.byte	0x6a
+ 791 0319 63030000 		.4byte	0x363
+ 792 031d 02       		.uleb128 0x2
+ 793 031e 91       		.byte	0x91
+ 794 031f 40       		.sleb128 -64
+ 795 0320 09       		.uleb128 0x9
+ 796 0321 4F000000 		.4byte	.LASF84
+ 797 0325 01       		.byte	0x1
+ 798 0326 6B       		.byte	0x6b
+ 799 0327 0D020000 		.4byte	0x20d
+ 800 032b 02       		.uleb128 0x2
+ 801 032c 91       		.byte	0x91
+ 802 032d 4C       		.sleb128 -52
+ 803 032e 09       		.uleb128 0x9
+ 804 032f 8D060000 		.4byte	.LASF85
+ 805 0333 01       		.byte	0x1
+ 806 0334 6C       		.byte	0x6c
+ 807 0335 6B000000 		.4byte	0x6b
+ 808 0339 03       		.uleb128 0x3
+ 809 033a 91       		.byte	0x91
+ 810 033b BF7F     		.sleb128 -65
+ 811 033d 09       		.uleb128 0x9
+ 812 033e B4020000 		.4byte	.LASF86
+ 813 0342 01       		.byte	0x1
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 18
+
+
+ 814 0343 72       		.byte	0x72
+ 815 0344 76000000 		.4byte	0x76
+ 816 0348 02       		.uleb128 0x2
+ 817 0349 91       		.byte	0x91
+ 818 034a 48       		.sleb128 -56
+ 819 034b 00       		.byte	0
+ 820 034c 00       		.byte	0
+ 821 034d 0C       		.uleb128 0xc
+ 822 034e 76000000 		.4byte	0x76
+ 823 0352 5D030000 		.4byte	0x35d
+ 824 0356 0D       		.uleb128 0xd
+ 825 0357 96000000 		.4byte	0x96
+ 826 035b 02       		.byte	0x2
+ 827 035c 00       		.byte	0
+ 828 035d 07       		.uleb128 0x7
+ 829 035e 04       		.byte	0x4
+ 830 035f 76000000 		.4byte	0x76
+ 831 0363 0C       		.uleb128 0xc
+ 832 0364 6B000000 		.4byte	0x6b
+ 833 0368 73030000 		.4byte	0x373
+ 834 036c 0D       		.uleb128 0xd
+ 835 036d 96000000 		.4byte	0x96
+ 836 0371 04       		.byte	0x4
+ 837 0372 00       		.byte	0
+ 838 0373 09       		.uleb128 0x9
+ 839 0374 E6010000 		.4byte	.LASF87
+ 840 0378 01       		.byte	0x1
+ 841 0379 10       		.byte	0x10
+ 842 037a 76000000 		.4byte	0x76
+ 843 037e 05       		.uleb128 0x5
+ 844 037f 03       		.byte	0x3
+ 845 0380 00000000 		.4byte	wait
+ 846 0384 0C       		.uleb128 0xc
+ 847 0385 81000000 		.4byte	0x81
+ 848 0389 94030000 		.4byte	0x394
+ 849 038d 0D       		.uleb128 0xd
+ 850 038e 96000000 		.4byte	0x96
+ 851 0392 04       		.byte	0x4
+ 852 0393 00       		.byte	0
+ 853 0394 0E       		.uleb128 0xe
+ 854 0395 C1020000 		.4byte	.LASF88
+ 855 0399 01       		.byte	0x1
+ 856 039a 0A       		.byte	0xa
+ 857 039b 84030000 		.4byte	0x384
+ 858 039f 05       		.uleb128 0x5
+ 859 03a0 03       		.byte	0x3
+ 860 03a1 00000000 		.4byte	dataArray
+ 861 03a5 0F       		.uleb128 0xf
+ 862 03a6 14070000 		.4byte	.LASF89
+ 863 03aa 01       		.byte	0x1
+ 864 03ab 0C       		.byte	0xc
+ 865 03ac 76000000 		.4byte	0x76
+ 866 03b0 0F       		.uleb128 0xf
+ 867 03b1 1E030000 		.4byte	.LASF90
+ 868 03b5 01       		.byte	0x1
+ 869 03b6 0D       		.byte	0xd
+ 870 03b7 76000000 		.4byte	0x76
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 19
+
+
+ 871 03bb 00       		.byte	0
+ 872              		.section	.debug_abbrev,"",%progbits
+ 873              	.Ldebug_abbrev0:
+ 874 0000 01       		.uleb128 0x1
+ 875 0001 11       		.uleb128 0x11
+ 876 0002 01       		.byte	0x1
+ 877 0003 25       		.uleb128 0x25
+ 878 0004 0E       		.uleb128 0xe
+ 879 0005 13       		.uleb128 0x13
+ 880 0006 0B       		.uleb128 0xb
+ 881 0007 03       		.uleb128 0x3
+ 882 0008 0E       		.uleb128 0xe
+ 883 0009 1B       		.uleb128 0x1b
+ 884 000a 0E       		.uleb128 0xe
+ 885 000b 55       		.uleb128 0x55
+ 886 000c 17       		.uleb128 0x17
+ 887 000d 11       		.uleb128 0x11
+ 888 000e 01       		.uleb128 0x1
+ 889 000f 10       		.uleb128 0x10
+ 890 0010 17       		.uleb128 0x17
+ 891 0011 00       		.byte	0
+ 892 0012 00       		.byte	0
+ 893 0013 02       		.uleb128 0x2
+ 894 0014 24       		.uleb128 0x24
+ 895 0015 00       		.byte	0
+ 896 0016 0B       		.uleb128 0xb
+ 897 0017 0B       		.uleb128 0xb
+ 898 0018 3E       		.uleb128 0x3e
+ 899 0019 0B       		.uleb128 0xb
+ 900 001a 03       		.uleb128 0x3
+ 901 001b 0E       		.uleb128 0xe
+ 902 001c 00       		.byte	0
+ 903 001d 00       		.byte	0
+ 904 001e 03       		.uleb128 0x3
+ 905 001f 24       		.uleb128 0x24
+ 906 0020 00       		.byte	0
+ 907 0021 0B       		.uleb128 0xb
+ 908 0022 0B       		.uleb128 0xb
+ 909 0023 3E       		.uleb128 0x3e
+ 910 0024 0B       		.uleb128 0xb
+ 911 0025 03       		.uleb128 0x3
+ 912 0026 08       		.uleb128 0x8
+ 913 0027 00       		.byte	0
+ 914 0028 00       		.byte	0
+ 915 0029 04       		.uleb128 0x4
+ 916 002a 16       		.uleb128 0x16
+ 917 002b 00       		.byte	0
+ 918 002c 03       		.uleb128 0x3
+ 919 002d 0E       		.uleb128 0xe
+ 920 002e 3A       		.uleb128 0x3a
+ 921 002f 0B       		.uleb128 0xb
+ 922 0030 3B       		.uleb128 0x3b
+ 923 0031 0B       		.uleb128 0xb
+ 924 0032 49       		.uleb128 0x49
+ 925 0033 13       		.uleb128 0x13
+ 926 0034 00       		.byte	0
+ 927 0035 00       		.byte	0
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 20
+
+
+ 928 0036 05       		.uleb128 0x5
+ 929 0037 04       		.uleb128 0x4
+ 930 0038 01       		.byte	0x1
+ 931 0039 0B       		.uleb128 0xb
+ 932 003a 0B       		.uleb128 0xb
+ 933 003b 3A       		.uleb128 0x3a
+ 934 003c 0B       		.uleb128 0xb
+ 935 003d 3B       		.uleb128 0x3b
+ 936 003e 0B       		.uleb128 0xb
+ 937 003f 01       		.uleb128 0x1
+ 938 0040 13       		.uleb128 0x13
+ 939 0041 00       		.byte	0
+ 940 0042 00       		.byte	0
+ 941 0043 06       		.uleb128 0x6
+ 942 0044 28       		.uleb128 0x28
+ 943 0045 00       		.byte	0
+ 944 0046 03       		.uleb128 0x3
+ 945 0047 0E       		.uleb128 0xe
+ 946 0048 1C       		.uleb128 0x1c
+ 947 0049 0D       		.uleb128 0xd
+ 948 004a 00       		.byte	0
+ 949 004b 00       		.byte	0
+ 950 004c 07       		.uleb128 0x7
+ 951 004d 0F       		.uleb128 0xf
+ 952 004e 00       		.byte	0
+ 953 004f 0B       		.uleb128 0xb
+ 954 0050 0B       		.uleb128 0xb
+ 955 0051 49       		.uleb128 0x49
+ 956 0052 13       		.uleb128 0x13
+ 957 0053 00       		.byte	0
+ 958 0054 00       		.byte	0
+ 959 0055 08       		.uleb128 0x8
+ 960 0056 2E       		.uleb128 0x2e
+ 961 0057 01       		.byte	0x1
+ 962 0058 3F       		.uleb128 0x3f
+ 963 0059 19       		.uleb128 0x19
+ 964 005a 03       		.uleb128 0x3
+ 965 005b 0E       		.uleb128 0xe
+ 966 005c 3A       		.uleb128 0x3a
+ 967 005d 0B       		.uleb128 0xb
+ 968 005e 3B       		.uleb128 0x3b
+ 969 005f 0B       		.uleb128 0xb
+ 970 0060 27       		.uleb128 0x27
+ 971 0061 19       		.uleb128 0x19
+ 972 0062 11       		.uleb128 0x11
+ 973 0063 01       		.uleb128 0x1
+ 974 0064 12       		.uleb128 0x12
+ 975 0065 06       		.uleb128 0x6
+ 976 0066 40       		.uleb128 0x40
+ 977 0067 18       		.uleb128 0x18
+ 978 0068 9642     		.uleb128 0x2116
+ 979 006a 19       		.uleb128 0x19
+ 980 006b 01       		.uleb128 0x1
+ 981 006c 13       		.uleb128 0x13
+ 982 006d 00       		.byte	0
+ 983 006e 00       		.byte	0
+ 984 006f 09       		.uleb128 0x9
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 21
+
+
+ 985 0070 34       		.uleb128 0x34
+ 986 0071 00       		.byte	0
+ 987 0072 03       		.uleb128 0x3
+ 988 0073 0E       		.uleb128 0xe
+ 989 0074 3A       		.uleb128 0x3a
+ 990 0075 0B       		.uleb128 0xb
+ 991 0076 3B       		.uleb128 0x3b
+ 992 0077 0B       		.uleb128 0xb
+ 993 0078 49       		.uleb128 0x49
+ 994 0079 13       		.uleb128 0x13
+ 995 007a 02       		.uleb128 0x2
+ 996 007b 18       		.uleb128 0x18
+ 997 007c 00       		.byte	0
+ 998 007d 00       		.byte	0
+ 999 007e 0A       		.uleb128 0xa
+ 1000 007f 0B       		.uleb128 0xb
+ 1001 0080 01       		.byte	0x1
+ 1002 0081 11       		.uleb128 0x11
+ 1003 0082 01       		.uleb128 0x1
+ 1004 0083 12       		.uleb128 0x12
+ 1005 0084 06       		.uleb128 0x6
+ 1006 0085 01       		.uleb128 0x1
+ 1007 0086 13       		.uleb128 0x13
+ 1008 0087 00       		.byte	0
+ 1009 0088 00       		.byte	0
+ 1010 0089 0B       		.uleb128 0xb
+ 1011 008a 0B       		.uleb128 0xb
+ 1012 008b 01       		.byte	0x1
+ 1013 008c 11       		.uleb128 0x11
+ 1014 008d 01       		.uleb128 0x1
+ 1015 008e 12       		.uleb128 0x12
+ 1016 008f 06       		.uleb128 0x6
+ 1017 0090 00       		.byte	0
+ 1018 0091 00       		.byte	0
+ 1019 0092 0C       		.uleb128 0xc
+ 1020 0093 01       		.uleb128 0x1
+ 1021 0094 01       		.byte	0x1
+ 1022 0095 49       		.uleb128 0x49
+ 1023 0096 13       		.uleb128 0x13
+ 1024 0097 01       		.uleb128 0x1
+ 1025 0098 13       		.uleb128 0x13
+ 1026 0099 00       		.byte	0
+ 1027 009a 00       		.byte	0
+ 1028 009b 0D       		.uleb128 0xd
+ 1029 009c 21       		.uleb128 0x21
+ 1030 009d 00       		.byte	0
+ 1031 009e 49       		.uleb128 0x49
+ 1032 009f 13       		.uleb128 0x13
+ 1033 00a0 2F       		.uleb128 0x2f
+ 1034 00a1 0B       		.uleb128 0xb
+ 1035 00a2 00       		.byte	0
+ 1036 00a3 00       		.byte	0
+ 1037 00a4 0E       		.uleb128 0xe
+ 1038 00a5 34       		.uleb128 0x34
+ 1039 00a6 00       		.byte	0
+ 1040 00a7 03       		.uleb128 0x3
+ 1041 00a8 0E       		.uleb128 0xe
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 22
+
+
+ 1042 00a9 3A       		.uleb128 0x3a
+ 1043 00aa 0B       		.uleb128 0xb
+ 1044 00ab 3B       		.uleb128 0x3b
+ 1045 00ac 0B       		.uleb128 0xb
+ 1046 00ad 49       		.uleb128 0x49
+ 1047 00ae 13       		.uleb128 0x13
+ 1048 00af 3F       		.uleb128 0x3f
+ 1049 00b0 19       		.uleb128 0x19
+ 1050 00b1 02       		.uleb128 0x2
+ 1051 00b2 18       		.uleb128 0x18
+ 1052 00b3 00       		.byte	0
+ 1053 00b4 00       		.byte	0
+ 1054 00b5 0F       		.uleb128 0xf
+ 1055 00b6 34       		.uleb128 0x34
+ 1056 00b7 00       		.byte	0
+ 1057 00b8 03       		.uleb128 0x3
+ 1058 00b9 0E       		.uleb128 0xe
+ 1059 00ba 3A       		.uleb128 0x3a
+ 1060 00bb 0B       		.uleb128 0xb
+ 1061 00bc 3B       		.uleb128 0x3b
+ 1062 00bd 0B       		.uleb128 0xb
+ 1063 00be 49       		.uleb128 0x49
+ 1064 00bf 13       		.uleb128 0x13
+ 1065 00c0 3F       		.uleb128 0x3f
+ 1066 00c1 19       		.uleb128 0x19
+ 1067 00c2 3C       		.uleb128 0x3c
+ 1068 00c3 19       		.uleb128 0x19
+ 1069 00c4 00       		.byte	0
+ 1070 00c5 00       		.byte	0
+ 1071 00c6 00       		.byte	0
+ 1072              		.section	.debug_aranges,"",%progbits
+ 1073 0000 1C000000 		.4byte	0x1c
+ 1074 0004 0200     		.2byte	0x2
+ 1075 0006 00000000 		.4byte	.Ldebug_info0
+ 1076 000a 04       		.byte	0x4
+ 1077 000b 00       		.byte	0
+ 1078 000c 0000     		.2byte	0
+ 1079 000e 0000     		.2byte	0
+ 1080 0010 00000000 		.4byte	.LFB35
+ 1081 0014 88020000 		.4byte	.LFE35-.LFB35
+ 1082 0018 00000000 		.4byte	0
+ 1083 001c 00000000 		.4byte	0
+ 1084              		.section	.debug_ranges,"",%progbits
+ 1085              	.Ldebug_ranges0:
+ 1086 0000 00000000 		.4byte	.LFB35
+ 1087 0004 88020000 		.4byte	.LFE35
+ 1088 0008 00000000 		.4byte	0
+ 1089 000c 00000000 		.4byte	0
+ 1090              		.section	.debug_line,"",%progbits
+ 1091              	.Ldebug_line0:
+ 1092 0000 A3000000 		.section	.debug_str,"MS",%progbits,1
+ 1092      02005800 
+ 1092      00000201 
+ 1092      FB0E0D00 
+ 1092      01010101 
+ 1093              	.LASF76:
+ 1094 0000 504F4C59 		.ascii	"POLY_X1_SP\000"
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 23
+
+
+ 1094      5F58315F 
+ 1094      535000
+ 1095              	.LASF23:
+ 1096 000b 4359424C 		.ascii	"CYBLE_EVT_GAP_PASSKEY_ENTRY_REQUEST\000"
+ 1096      455F4556 
+ 1096      545F4741 
+ 1096      505F5041 
+ 1096      53534B45 
+ 1097              	.LASF34:
+ 1098 002f 4359424C 		.ascii	"CYBLE_EVT_GATTC_ERROR_RSP\000"
+ 1098      455F4556 
+ 1098      545F4741 
+ 1098      5454435F 
+ 1098      4552524F 
+ 1099              	.LASF80:
+ 1100 0049 6C706F53 		.ascii	"lpoSP\000"
+ 1100      5000
+ 1101              	.LASF84:
+ 1102 004f 64696769 		.ascii	"digitsPtr\000"
+ 1102      74735074 
+ 1102      7200
+ 1103              	.LASF2:
+ 1104 0059 73686F72 		.ascii	"short int\000"
+ 1104      7420696E 
+ 1104      7400
+ 1105              	.LASF26:
+ 1106 0063 4359424C 		.ascii	"CYBLE_EVT_GAP_AUTH_FAILED\000"
+ 1106      455F4556 
+ 1106      545F4741 
+ 1106      505F4155 
+ 1106      54485F46 
+ 1107              	.LASF36:
+ 1108 007d 4359424C 		.ascii	"CYBLE_EVT_GATT_DISCONNECT_IND\000"
+ 1108      455F4556 
+ 1108      545F4741 
+ 1108      54545F44 
+ 1108      4953434F 
+ 1109              	.LASF14:
+ 1110 009b 73697A65 		.ascii	"sizetype\000"
+ 1110      74797065 
+ 1110      00
+ 1111              	.LASF7:
+ 1112 00a4 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 1112      206C6F6E 
+ 1112      6720756E 
+ 1112      7369676E 
+ 1112      65642069 
+ 1113              	.LASF79:
+ 1114 00bb 504F4C59 		.ascii	"POLY_X1_LP\000"
+ 1114      5F58315F 
+ 1114      4C5000
+ 1115              	.LASF94:
+ 1116 00c6 48616E64 		.ascii	"HandleDataCollection\000"
+ 1116      6C654461 
+ 1116      7461436F 
+ 1116      6C6C6563 
+ 1116      74696F6E 
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 24
+
+
+ 1117              	.LASF19:
+ 1118 00db 4359424C 		.ascii	"CYBLE_EVT_HCI_STATUS\000"
+ 1118      455F4556 
+ 1118      545F4843 
+ 1118      495F5354 
+ 1118      41545553 
+ 1119              	.LASF40:
+ 1120 00f0 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_BY_TYPE_RSP\000"
+ 1120      455F4556 
+ 1120      545F4741 
+ 1120      5454435F 
+ 1120      52454144 
+ 1121              	.LASF16:
+ 1122 0111 4359424C 		.ascii	"CYBLE_EVT_STACK_ON\000"
+ 1122      455F4556 
+ 1122      545F5354 
+ 1122      41434B5F 
+ 1122      4F4E00
+ 1123              	.LASF37:
+ 1124 0124 4359424C 		.ascii	"CYBLE_EVT_GATTS_XCNHG_MTU_REQ\000"
+ 1124      455F4556 
+ 1124      545F4741 
+ 1124      5454535F 
+ 1124      58434E48 
+ 1125              	.LASF33:
+ 1126 0142 4359424C 		.ascii	"CYBLE_EVT_GAP_KEYINFO_EXCHNGE_CMPLT\000"
+ 1126      455F4556 
+ 1126      545F4741 
+ 1126      505F4B45 
+ 1126      59494E46 
+ 1127              	.LASF45:
+ 1128 0166 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_MULTI_RSP\000"
+ 1128      455F4556 
+ 1128      545F4741 
+ 1128      5454435F 
+ 1128      52454144 
+ 1129              	.LASF54:
+ 1130 0185 4359424C 		.ascii	"CYBLE_EVT_GATTS_HANDLE_VALUE_CNF\000"
+ 1130      455F4556 
+ 1130      545F4741 
+ 1130      5454535F 
+ 1130      48414E44 
+ 1131              	.LASF15:
+ 1132 01a6 4359424C 		.ascii	"CYBLE_EVT_HOST_INVALID\000"
+ 1132      455F4556 
+ 1132      545F484F 
+ 1132      53545F49 
+ 1132      4E56414C 
+ 1133              	.LASF75:
+ 1134 01bd 504F4C59 		.ascii	"POLY_X2_SP\000"
+ 1134      5F58325F 
+ 1134      535000
+ 1135              	.LASF59:
+ 1136 01c8 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_CONN_IND\000"
+ 1136      455F4556 
+ 1136      545F4C32 
+ 1136      4341505F 
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 25
+
+
+ 1136      43424643 
+ 1137              	.LASF87:
+ 1138 01e6 77616974 		.ascii	"wait\000"
+ 1138      00
+ 1139              	.LASF62:
+ 1140 01eb 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_DISCONN_CNF\000"
+ 1140      455F4556 
+ 1140      545F4C32 
+ 1140      4341505F 
+ 1140      43424643 
+ 1141              	.LASF11:
+ 1142 020c 666C6F61 		.ascii	"float\000"
+ 1142      7400
+ 1143              	.LASF93:
+ 1144 0212 433A5C55 		.ascii	"C:\\Users\\ksoneda\\Documents\\PSoC Creator\\Senior"
+ 1144      73657273 
+ 1144      5C6B736F 
+ 1144      6E656461 
+ 1144      5C446F63 
+ 1145 0240 20446573 		.ascii	" Design\\AQM Firmware BLE\\AQM Firmware BLE v1.cyds"
+ 1145      69676E5C 
+ 1145      41514D20 
+ 1145      4669726D 
+ 1145      77617265 
+ 1146 0271 6E00     		.ascii	"n\000"
+ 1147              	.LASF43:
+ 1148 0273 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_RSP\000"
+ 1148      455F4556 
+ 1148      545F4741 
+ 1148      5454435F 
+ 1148      52454144 
+ 1149              	.LASF47:
+ 1150 028c 4359424C 		.ascii	"CYBLE_EVT_GATTC_WRITE_RSP\000"
+ 1150      455F4556 
+ 1150      545F4741 
+ 1150      5454435F 
+ 1150      57524954 
+ 1151              	.LASF6:
+ 1152 02a6 6C6F6E67 		.ascii	"long long int\000"
+ 1152      206C6F6E 
+ 1152      6720696E 
+ 1152      7400
+ 1153              	.LASF86:
+ 1154 02b4 636F6E76 		.ascii	"convertedVal\000"
+ 1154      65727465 
+ 1154      6456616C 
+ 1154      00
+ 1155              	.LASF88:
+ 1156 02c1 64617461 		.ascii	"dataArray\000"
+ 1156      41727261 
+ 1156      7900
+ 1157              	.LASF4:
+ 1158 02cb 6C6F6E67 		.ascii	"long int\000"
+ 1158      20696E74 
+ 1158      00
+ 1159              	.LASF53:
+ 1160 02d4 4359424C 		.ascii	"CYBLE_EVT_GATTC_HANDLE_VALUE_IND\000"
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 26
+
+
+ 1160      455F4556 
+ 1160      545F4741 
+ 1160      5454435F 
+ 1160      48414E44 
+ 1161              	.LASF28:
+ 1162 02f5 4359424C 		.ascii	"CYBLE_EVT_GAP_DEVICE_CONNECTED\000"
+ 1162      455F4556 
+ 1162      545F4741 
+ 1162      505F4445 
+ 1162      56494345 
+ 1163              	.LASF70:
+ 1164 0314 6E657874 		.ascii	"nextState\000"
+ 1164      53746174 
+ 1164      6500
+ 1165              	.LASF90:
+ 1166 031e 4C506461 		.ascii	"LPdata\000"
+ 1166      746100
+ 1167              	.LASF27:
+ 1168 0325 4359424C 		.ascii	"CYBLE_EVT_GAPP_ADVERTISEMENT_START_STOP\000"
+ 1168      455F4556 
+ 1168      545F4741 
+ 1168      50505F41 
+ 1168      44564552 
+ 1169              	.LASF52:
+ 1170 034d 4359424C 		.ascii	"CYBLE_EVT_GATTC_HANDLE_VALUE_NTF\000"
+ 1170      455F4556 
+ 1170      545F4741 
+ 1170      5454435F 
+ 1170      48414E44 
+ 1171              	.LASF20:
+ 1172 036e 4359424C 		.ascii	"CYBLE_EVT_STACK_BUSY_STATUS\000"
+ 1172      455F4556 
+ 1172      545F5354 
+ 1172      41434B5F 
+ 1172      42555359 
+ 1173              	.LASF83:
+ 1174 038a 64696769 		.ascii	"digits\000"
+ 1174      747300
+ 1175              	.LASF77:
+ 1176 0391 504F4C59 		.ascii	"POLY_X0_SP\000"
+ 1176      5F58305F 
+ 1176      535000
+ 1177              	.LASF24:
+ 1178 039c 4359424C 		.ascii	"CYBLE_EVT_GAP_PASSKEY_DISPLAY_REQUEST\000"
+ 1178      455F4556 
+ 1178      545F4741 
+ 1178      505F5041 
+ 1178      53534B45 
+ 1179              	.LASF60:
+ 1180 03c2 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_CONN_CNF\000"
+ 1180      455F4556 
+ 1180      545F4C32 
+ 1180      4341505F 
+ 1180      43424643 
+ 1181              	.LASF68:
+ 1182 03e0 4359424C 		.ascii	"CYBLE_EVT_MAX\000"
+ 1182      455F4556 
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 27
+
+
+ 1182      545F4D41 
+ 1182      5800
+ 1183              	.LASF9:
+ 1184 03ee 75696E74 		.ascii	"uint8\000"
+ 1184      3800
+ 1185              	.LASF56:
+ 1186 03f4 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CONN_PARAM_UPDATE_REQ\000"
+ 1186      455F4556 
+ 1186      545F4C32 
+ 1186      4341505F 
+ 1186      434F4E4E 
+ 1187              	.LASF1:
+ 1188 041a 756E7369 		.ascii	"unsigned char\000"
+ 1188      676E6564 
+ 1188      20636861 
+ 1188      7200
+ 1189              	.LASF49:
+ 1190 0428 4359424C 		.ascii	"CYBLE_EVT_GATTS_PREP_WRITE_REQ\000"
+ 1190      455F4556 
+ 1190      545F4741 
+ 1190      5454535F 
+ 1190      50524550 
+ 1191              	.LASF41:
+ 1192 0447 4359424C 		.ascii	"CYBLE_EVT_GATTC_FIND_INFO_RSP\000"
+ 1192      455F4556 
+ 1192      545F4741 
+ 1192      5454435F 
+ 1192      46494E44 
+ 1193              	.LASF0:
+ 1194 0465 7369676E 		.ascii	"signed char\000"
+ 1194      65642063 
+ 1194      68617200 
+ 1195              	.LASF46:
+ 1196 0471 4359424C 		.ascii	"CYBLE_EVT_GATTS_WRITE_REQ\000"
+ 1196      455F4556 
+ 1196      545F4741 
+ 1196      5454535F 
+ 1196      57524954 
+ 1197              	.LASF42:
+ 1198 048b 4359424C 		.ascii	"CYBLE_EVT_GATTC_FIND_BY_TYPE_VALUE_RSP\000"
+ 1198      455F4556 
+ 1198      545F4741 
+ 1198      5454435F 
+ 1198      46494E44 
+ 1199              	.LASF25:
+ 1200 04b2 4359424C 		.ascii	"CYBLE_EVT_GAP_AUTH_COMPLETE\000"
+ 1200      455F4556 
+ 1200      545F4741 
+ 1200      505F4155 
+ 1200      54485F43 
+ 1201              	.LASF8:
+ 1202 04ce 756E7369 		.ascii	"unsigned int\000"
+ 1202      676E6564 
+ 1202      20696E74 
+ 1202      00
+ 1203              	.LASF35:
+ 1204 04db 4359424C 		.ascii	"CYBLE_EVT_GATT_CONNECT_IND\000"
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 28
+
+
+ 1204      455F4556 
+ 1204      545F4741 
+ 1204      54545F43 
+ 1204      4F4E4E45 
+ 1205              	.LASF5:
+ 1206 04f6 6C6F6E67 		.ascii	"long unsigned int\000"
+ 1206      20756E73 
+ 1206      69676E65 
+ 1206      6420696E 
+ 1206      7400
+ 1207              	.LASF22:
+ 1208 0508 4359424C 		.ascii	"CYBLE_EVT_GAP_AUTH_REQ\000"
+ 1208      455F4556 
+ 1208      545F4741 
+ 1208      505F4155 
+ 1208      54485F52 
+ 1209              	.LASF73:
+ 1210 051f 64617461 		.ascii	"dataPtr\000"
+ 1210      50747200 
+ 1211              	.LASF61:
+ 1212 0527 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_DISCONN_IND\000"
+ 1212      455F4556 
+ 1212      545F4C32 
+ 1212      4341505F 
+ 1212      43424643 
+ 1213              	.LASF30:
+ 1214 0548 4359424C 		.ascii	"CYBLE_EVT_GAP_ENCRYPT_CHANGE\000"
+ 1214      455F4556 
+ 1214      545F4741 
+ 1214      505F454E 
+ 1214      43525950 
+ 1215              	.LASF3:
+ 1216 0565 73686F72 		.ascii	"short unsigned int\000"
+ 1216      7420756E 
+ 1216      7369676E 
+ 1216      65642069 
+ 1216      6E7400
+ 1217              	.LASF31:
+ 1218 0578 4359424C 		.ascii	"CYBLE_EVT_GAP_CONNECTION_UPDATE_COMPLETE\000"
+ 1218      455F4556 
+ 1218      545F4741 
+ 1218      505F434F 
+ 1218      4E4E4543 
+ 1219              	.LASF13:
+ 1220 05a1 63686172 		.ascii	"char\000"
+ 1220      00
+ 1221              	.LASF69:
+ 1222 05a6 63757272 		.ascii	"currentState\000"
+ 1222      656E7453 
+ 1222      74617465 
+ 1222      00
+ 1223              	.LASF58:
+ 1224 05b3 4359424C 		.ascii	"CYBLE_EVT_L2CAP_COMMAND_REJ\000"
+ 1224      455F4556 
+ 1224      545F4C32 
+ 1224      4341505F 
+ 1224      434F4D4D 
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 29
+
+
+ 1225              	.LASF81:
+ 1226 05cf 6C706F4C 		.ascii	"lpoLP\000"
+ 1226      5000
+ 1227              	.LASF44:
+ 1228 05d5 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_BLOB_RSP\000"
+ 1228      455F4556 
+ 1228      545F4741 
+ 1228      5454435F 
+ 1228      52454144 
+ 1229              	.LASF51:
+ 1230 05f3 4359424C 		.ascii	"CYBLE_EVT_GATTC_EXEC_WRITE_RSP\000"
+ 1230      455F4556 
+ 1230      545F4741 
+ 1230      5454435F 
+ 1230      45584543 
+ 1231              	.LASF10:
+ 1232 0612 75696E74 		.ascii	"uint32\000"
+ 1232      333200
+ 1233              	.LASF67:
+ 1234 0619 4359424C 		.ascii	"CYBLE_EVT_PENDING_FLASH_WRITE\000"
+ 1234      455F4556 
+ 1234      545F5045 
+ 1234      4E44494E 
+ 1234      475F464C 
+ 1235              	.LASF64:
+ 1236 0637 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_RX_CREDIT_IND\000"
+ 1236      455F4556 
+ 1236      545F4C32 
+ 1236      4341505F 
+ 1236      43424643 
+ 1237              	.LASF12:
+ 1238 065a 646F7562 		.ascii	"double\000"
+ 1238      6C6500
+ 1239              	.LASF82:
+ 1240 0661 72657370 		.ascii	"response\000"
+ 1240      6F6E7365 
+ 1240      00
+ 1241              	.LASF65:
+ 1242 066a 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_TX_CREDIT_IND\000"
+ 1242      455F4556 
+ 1242      545F4C32 
+ 1242      4341505F 
+ 1242      43424643 
+ 1243              	.LASF85:
+ 1244 068d 73697A65 		.ascii	"size\000"
+ 1244      00
+ 1245              	.LASF18:
+ 1246 0692 4359424C 		.ascii	"CYBLE_EVT_HARDWARE_ERROR\000"
+ 1246      455F4556 
+ 1246      545F4841 
+ 1246      52445741 
+ 1246      52455F45 
+ 1247              	.LASF63:
+ 1248 06ab 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_DATA_READ\000"
+ 1248      455F4556 
+ 1248      545F4C32 
+ 1248      4341505F 
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 30
+
+
+ 1248      43424643 
+ 1249              	.LASF57:
+ 1250 06ca 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CONN_PARAM_UPDATE_RSP\000"
+ 1250      455F4556 
+ 1250      545F4C32 
+ 1250      4341505F 
+ 1250      434F4E4E 
+ 1251              	.LASF21:
+ 1252 06f0 4359424C 		.ascii	"CYBLE_EVT_GAPC_SCAN_PROGRESS_RESULT\000"
+ 1252      455F4556 
+ 1252      545F4741 
+ 1252      50435F53 
+ 1252      43414E5F 
+ 1253              	.LASF89:
+ 1254 0714 53506461 		.ascii	"SPdata\000"
+ 1254      746100
+ 1255              	.LASF74:
+ 1256 071b 504F4C59 		.ascii	"POLY_X3_SP\000"
+ 1256      5F58335F 
+ 1256      535000
+ 1257              	.LASF39:
+ 1258 0726 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_BY_GROUP_TYPE_RSP\000"
+ 1258      455F4556 
+ 1258      545F4741 
+ 1258      5454435F 
+ 1258      52454144 
+ 1259              	.LASF48:
+ 1260 074d 4359424C 		.ascii	"CYBLE_EVT_GATTS_WRITE_CMD_REQ\000"
+ 1260      455F4556 
+ 1260      545F4741 
+ 1260      5454535F 
+ 1260      57524954 
+ 1261              	.LASF38:
+ 1262 076b 4359424C 		.ascii	"CYBLE_EVT_GATTC_XCHNG_MTU_RSP\000"
+ 1262      455F4556 
+ 1262      545F4741 
+ 1262      5454435F 
+ 1262      5843484E 
+ 1263              	.LASF17:
+ 1264 0789 4359424C 		.ascii	"CYBLE_EVT_TIMEOUT\000"
+ 1264      455F4556 
+ 1264      545F5449 
+ 1264      4D454F55 
+ 1264      5400
+ 1265              	.LASF66:
+ 1266 079b 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_DATA_WRITE_IND\000"
+ 1266      455F4556 
+ 1266      545F4C32 
+ 1266      4341505F 
+ 1266      43424643 
+ 1267              	.LASF32:
+ 1268 07bf 4359424C 		.ascii	"CYBLE_EVT_GAPC_SCAN_START_STOP\000"
+ 1268      455F4556 
+ 1268      545F4741 
+ 1268      50435F53 
+ 1268      43414E5F 
+ 1269              	.LASF92:
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\cchuVQI7.s 			page 31
+
+
+ 1270 07de 2E5C6D61 		.ascii	".\\mainLoop.c\000"
+ 1270      696E4C6F 
+ 1270      6F702E63 
+ 1270      00
+ 1271              	.LASF50:
+ 1272 07eb 4359424C 		.ascii	"CYBLE_EVT_GATTS_EXEC_WRITE_REQ\000"
+ 1272      455F4556 
+ 1272      545F4741 
+ 1272      5454535F 
+ 1272      45584543 
+ 1273              	.LASF78:
+ 1274 080a 504F4C59 		.ascii	"POLY_X2_LP\000"
+ 1274      5F58325F 
+ 1274      4C5000
+ 1275              	.LASF29:
+ 1276 0815 4359424C 		.ascii	"CYBLE_EVT_GAP_DEVICE_DISCONNECTED\000"
+ 1276      455F4556 
+ 1276      545F4741 
+ 1276      505F4445 
+ 1276      56494345 
+ 1277              	.LASF71:
+ 1278 0837 63757272 		.ascii	"currentReadMode\000"
+ 1278      656E7452 
+ 1278      6561644D 
+ 1278      6F646500 
+ 1279              	.LASF55:
+ 1280 0847 4359424C 		.ascii	"CYBLE_EVT_GATTS_DATA_SIGNED_CMD_REQ\000"
+ 1280      455F4556 
+ 1280      545F4741 
+ 1280      5454535F 
+ 1280      44415441 
+ 1281              	.LASF91:
+ 1282 086b 474E5520 		.ascii	"GNU C 4.8.4 20140526 (release) [ARM/embedded-4_8-br"
+ 1282      4320342E 
+ 1282      382E3420 
+ 1282      32303134 
+ 1282      30353236 
+ 1283 089e 616E6368 		.ascii	"anch revision 211358] -mcpu=cortex-m0 -mthumb -g -O"
+ 1283      20726576 
+ 1283      6973696F 
+ 1283      6E203231 
+ 1283      31333538 
+ 1284 08d1 30202D66 		.ascii	"0 -ffunction-sections\000"
+ 1284      66756E63 
+ 1284      74696F6E 
+ 1284      2D736563 
+ 1284      74696F6E 
+ 1285              	.LASF72:
+ 1286 08e7 64617461 		.ascii	"dataBuf\000"
+ 1286      42756600 
+ 1287              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 4.8.4 20140526 (release) [ARM/embedded-4_8-br

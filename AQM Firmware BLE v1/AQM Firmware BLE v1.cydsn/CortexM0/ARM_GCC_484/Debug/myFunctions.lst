@@ -1,0 +1,895 @@
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccTTTBzS.s 			page 1
+
+
+   1              		.cpu cortex-m0
+   2              		.fpu softvfp
+   3              		.eabi_attribute 20, 1
+   4              		.eabi_attribute 21, 1
+   5              		.eabi_attribute 23, 3
+   6              		.eabi_attribute 24, 1
+   7              		.eabi_attribute 25, 1
+   8              		.eabi_attribute 26, 1
+   9              		.eabi_attribute 30, 6
+  10              		.eabi_attribute 34, 0
+  11              		.eabi_attribute 18, 4
+  12              		.code	16
+  13              		.file	"myFunctions.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.section	.text.LoadNextState,"ax",%progbits
+  18              		.align	2
+  19              		.global	LoadNextState
+  20              		.code	16
+  21              		.thumb_func
+  22              		.type	LoadNextState, %function
+  23              	LoadNextState:
+  24              	.LFB35:
+  25              		.file 1 ".\\myFunctions.c"
+   1:.\myFunctions.c **** /* ========================================
+   2:.\myFunctions.c ****  *
+   3:.\myFunctions.c ****  * Copyright YOUR COMPANY, THE YEAR
+   4:.\myFunctions.c ****  * All Rights Reserved
+   5:.\myFunctions.c ****  * UNPUBLISHED, LICENSED SOFTWARE.
+   6:.\myFunctions.c ****  *
+   7:.\myFunctions.c ****  * CONFIDENTIAL AND PROPRIETARY INFORMATION
+   8:.\myFunctions.c ****  * WHICH IS THE PROPERTY OF your company.
+   9:.\myFunctions.c ****  *
+  10:.\myFunctions.c ****  * by Keith Soneda
+  11:.\myFunctions.c ****  * UC Davis - EEC136AB - Firmware for Air Quality Monitor - PSOC 4 BLE revision - March 2015
+  12:.\myFunctions.c ****  * Overview: Random Functions
+  13:.\myFunctions.c ****  * ========================================
+  14:.\myFunctions.c **** */
+  15:.\myFunctions.c **** #include "main.h"
+  16:.\myFunctions.c **** 
+  17:.\myFunctions.c **** #ifdef MY_FUNCTIONS_H
+  18:.\myFunctions.c **** //Function for loading next state in mainLoop.c code 
+  19:.\myFunctions.c **** 	//(largely pointless now if you remove the IDLE_STATE case from that code hardcode the return stat
+  20:.\myFunctions.c **** uint8 LoadNextState(uint8 nextState, uint8 *readMode)
+  21:.\myFunctions.c **** {
+  26              		.loc 1 21 0
+  27              		.cfi_startproc
+  28 0000 80B5     		push	{r7, lr}
+  29              		.cfi_def_cfa_offset 8
+  30              		.cfi_offset 7, -8
+  31              		.cfi_offset 14, -4
+  32 0002 82B0     		sub	sp, sp, #8
+  33              		.cfi_def_cfa_offset 16
+  34 0004 00AF     		add	r7, sp, #0
+  35              		.cfi_def_cfa_register 7
+  36 0006 021C     		mov	r2, r0
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccTTTBzS.s 			page 2
+
+
+  37 0008 3960     		str	r1, [r7]
+  38 000a FB1D     		add	r3, r7, #7
+  39 000c 1A70     		strb	r2, [r3]
+  22:.\myFunctions.c **** 	switch(nextState)
+  40              		.loc 1 22 0
+  41 000e FB1D     		add	r3, r7, #7
+  42 0010 1B78     		ldrb	r3, [r3]
+  43 0012 072B     		cmp	r3, #7
+  44 0014 22D8     		bhi	.L2
+  45 0016 9A00     		lsl	r2, r3, #2
+  46 0018 134B     		ldr	r3, .L11
+  47 001a D318     		add	r3, r2, r3
+  48 001c 1B68     		ldr	r3, [r3]
+  49 001e 9F46     		mov	pc, r3
+  50              		.section	.rodata
+  51              		.align	2
+  52              	.L4:
+  53 0000 5C000000 		.word	.L2
+  54 0004 20000000 		.word	.L3
+  55 0008 5C000000 		.word	.L2
+  56 000c 34000000 		.word	.L5
+  57 0010 2A000000 		.word	.L6
+  58 0014 3E000000 		.word	.L7
+  59 0018 52000000 		.word	.L8
+  60 001c 48000000 		.word	.L9
+  61              		.section	.text.LoadNextState
+  62              	.L3:
+  23:.\myFunctions.c **** 	{
+  24:.\myFunctions.c **** 		case STANDBY_MODE:
+  25:.\myFunctions.c **** 		{
+  26:.\myFunctions.c **** 			*(readMode) = STANDBY_MODE;
+  63              		.loc 1 26 0
+  64 0020 3B68     		ldr	r3, [r7]
+  65 0022 0122     		mov	r2, #1
+  66 0024 1A70     		strb	r2, [r3]
+  27:.\myFunctions.c **** 			return IDLE_STATE;
+  67              		.loc 1 27 0
+  68 0026 0123     		mov	r3, #1
+  69 0028 19E0     		b	.L10
+  70              	.L6:
+  28:.\myFunctions.c **** 		}
+  29:.\myFunctions.c **** 		break;
+  30:.\myFunctions.c **** 		
+  31:.\myFunctions.c **** 		case PERIODIC_MODE:// repeating, with sleep
+  32:.\myFunctions.c **** 		{
+  33:.\myFunctions.c **** 			*(readMode) = PERIODIC_MODE;
+  71              		.loc 1 33 0
+  72 002a 3B68     		ldr	r3, [r7]
+  73 002c 0422     		mov	r2, #4
+  74 002e 1A70     		strb	r2, [r3]
+  34:.\myFunctions.c **** 			return READ_DUST_STATE;
+  75              		.loc 1 34 0
+  76 0030 0223     		mov	r3, #2
+  77 0032 14E0     		b	.L10
+  78              	.L5:
+  35:.\myFunctions.c **** 		}
+  36:.\myFunctions.c **** 		break;
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccTTTBzS.s 			page 3
+
+
+  37:.\myFunctions.c **** 		
+  38:.\myFunctions.c **** 		case CONTINUOUS_MODE://repeating
+  39:.\myFunctions.c **** 		{
+  40:.\myFunctions.c **** 			*(readMode) = CONTINUOUS_MODE;
+  79              		.loc 1 40 0
+  80 0034 3B68     		ldr	r3, [r7]
+  81 0036 0322     		mov	r2, #3
+  82 0038 1A70     		strb	r2, [r3]
+  41:.\myFunctions.c **** 			return READ_DUST_STATE;
+  83              		.loc 1 41 0
+  84 003a 0223     		mov	r3, #2
+  85 003c 0FE0     		b	.L10
+  86              	.L7:
+  42:.\myFunctions.c **** 		}
+  43:.\myFunctions.c **** 		break;
+  44:.\myFunctions.c **** 	
+  45:.\myFunctions.c **** 	#ifdef FUNCTIONS_COZIR_H
+  46:.\myFunctions.c **** 		case COZIR_STANDBY_MODE:
+  47:.\myFunctions.c **** 		{
+  48:.\myFunctions.c **** 			nextState = STANDBY_MODE;//test
+  87              		.loc 1 48 0
+  88 003e FB1D     		add	r3, r7, #7
+  89 0040 0122     		mov	r2, #1
+  90 0042 1A70     		strb	r2, [r3]
+  49:.\myFunctions.c **** 			return COZIR_STANDBY_STATE;
+  91              		.loc 1 49 0
+  92 0044 0423     		mov	r3, #4
+  93 0046 0AE0     		b	.L10
+  94              	.L9:
+  50:.\myFunctions.c **** 		}
+  51:.\myFunctions.c **** 		break;
+  52:.\myFunctions.c **** 	
+  53:.\myFunctions.c **** 		case READ_CO2_MODE:
+  54:.\myFunctions.c **** 		{
+  55:.\myFunctions.c **** 			nextState = STANDBY_MODE;//test
+  95              		.loc 1 55 0
+  96 0048 FB1D     		add	r3, r7, #7
+  97 004a 0122     		mov	r2, #1
+  98 004c 1A70     		strb	r2, [r3]
+  56:.\myFunctions.c **** 			return READ_CO2_STATE;
+  99              		.loc 1 56 0
+ 100 004e 0B23     		mov	r3, #11
+ 101 0050 05E0     		b	.L10
+ 102              	.L8:
+  57:.\myFunctions.c **** 		}
+  58:.\myFunctions.c **** 		break;
+  59:.\myFunctions.c **** 	#endif	
+  60:.\myFunctions.c **** 		
+  61:.\myFunctions.c **** 	#ifdef SI_7020_H
+  62:.\myFunctions.c **** 		case TH_MODE:
+  63:.\myFunctions.c **** 		{
+  64:.\myFunctions.c **** 			nextState = STANDBY_MODE;//test
+ 103              		.loc 1 64 0
+ 104 0052 FB1D     		add	r3, r7, #7
+ 105 0054 0122     		mov	r2, #1
+ 106 0056 1A70     		strb	r2, [r3]
+  65:.\myFunctions.c **** 			return READ_TH_STATE;
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccTTTBzS.s 			page 4
+
+
+ 107              		.loc 1 65 0
+ 108 0058 0323     		mov	r3, #3
+ 109 005a 00E0     		b	.L10
+ 110              	.L2:
+  66:.\myFunctions.c **** 		}
+  67:.\myFunctions.c **** 		break;
+  68:.\myFunctions.c **** 	#endif
+  69:.\myFunctions.c **** 		
+  70:.\myFunctions.c **** 		default:
+  71:.\myFunctions.c **** 		{
+  72:.\myFunctions.c **** 			//add error handling code
+  73:.\myFunctions.c **** 			if(nextState >= ENDOFRANGE_MODE)
+  74:.\myFunctions.c **** 			{
+  75:.\myFunctions.c **** 			}
+  76:.\myFunctions.c **** 			return IDLE_STATE;
+ 111              		.loc 1 76 0
+ 112 005c 0123     		mov	r3, #1
+ 113              	.L10:
+  77:.\myFunctions.c **** 		}
+  78:.\myFunctions.c **** 	}//end of switch-case for nextState	
+  79:.\myFunctions.c **** }
+ 114              		.loc 1 79 0
+ 115 005e 181C     		mov	r0, r3
+ 116 0060 BD46     		mov	sp, r7
+ 117 0062 02B0     		add	sp, sp, #8
+ 118              		@ sp needed
+ 119 0064 80BD     		pop	{r7, pc}
+ 120              	.L12:
+ 121 0066 C046     		.align	2
+ 122              	.L11:
+ 123 0068 00000000 		.word	.L4
+ 124              		.cfi_endproc
+ 125              	.LFE35:
+ 126              		.size	LoadNextState, .-LoadNextState
+ 127              		.section	.text.ConvertDigitsToU16,"ax",%progbits
+ 128              		.align	2
+ 129              		.global	ConvertDigitsToU16
+ 130              		.code	16
+ 131              		.thumb_func
+ 132              		.type	ConvertDigitsToU16, %function
+ 133              	ConvertDigitsToU16:
+ 134              	.LFB36:
+  80:.\myFunctions.c **** 
+  81:.\myFunctions.c **** // overview: 	turns array of base 10 digits and stores in base 2 (uint16)
+  82:.\myFunctions.c **** // details:		input array format - most significant (index 0) to least significant (index size-1);
+  83:.\myFunctions.c **** //				Does not check array.
+  84:.\myFunctions.c **** // inputs: 		digits - pointer to array of digits, size - number of digits to process
+  85:.\myFunctions.c **** // outputs:		uint16 number
+  86:.\myFunctions.c **** // errors: 		doesnt check for Overflow, or non integer characters.
+  87:.\myFunctions.c **** uint16 ConvertDigitsToU16(uint8 *digits,uint8 size)
+  88:.\myFunctions.c **** {
+ 135              		.loc 1 88 0
+ 136              		.cfi_startproc
+ 137 0000 80B5     		push	{r7, lr}
+ 138              		.cfi_def_cfa_offset 8
+ 139              		.cfi_offset 7, -8
+ 140              		.cfi_offset 14, -4
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccTTTBzS.s 			page 5
+
+
+ 141 0002 84B0     		sub	sp, sp, #16
+ 142              		.cfi_def_cfa_offset 24
+ 143 0004 00AF     		add	r7, sp, #0
+ 144              		.cfi_def_cfa_register 7
+ 145 0006 7860     		str	r0, [r7, #4]
+ 146 0008 0A1C     		mov	r2, r1
+ 147 000a FB1C     		add	r3, r7, #3
+ 148 000c 1A70     		strb	r2, [r3]
+  89:.\myFunctions.c **** 	uint16 number,value = 0u;
+ 149              		.loc 1 89 0
+ 150 000e 3B1C     		mov	r3, r7
+ 151 0010 0C33     		add	r3, r3, #12
+ 152 0012 0022     		mov	r2, #0
+ 153 0014 1A80     		strh	r2, [r3]
+  90:.\myFunctions.c **** 	uint8 i,j;
+  91:.\myFunctions.c **** 	for(i=0u;i<size;++i)
+ 154              		.loc 1 91 0
+ 155 0016 3B1C     		mov	r3, r7
+ 156 0018 0B33     		add	r3, r3, #11
+ 157 001a 0022     		mov	r2, #0
+ 158 001c 1A70     		strb	r2, [r3]
+ 159 001e 3AE0     		b	.L14
+ 160              	.L17:
+  92:.\myFunctions.c **** 	{
+  93:.\myFunctions.c **** 		value = *(digits+i);// Start of '0' (48u) to '9' (57u) range.
+ 161              		.loc 1 93 0
+ 162 0020 3B1C     		mov	r3, r7
+ 163 0022 0B33     		add	r3, r3, #11
+ 164 0024 1B78     		ldrb	r3, [r3]
+ 165 0026 7A68     		ldr	r2, [r7, #4]
+ 166 0028 D318     		add	r3, r2, r3
+ 167 002a 1A78     		ldrb	r2, [r3]
+ 168 002c 3B1C     		mov	r3, r7
+ 169 002e 0C33     		add	r3, r3, #12
+ 170 0030 1A80     		strh	r2, [r3]
+  94:.\myFunctions.c **** 		for(j=1u;j<(size-i);++j) //shift digit to correct position in base 10
+ 171              		.loc 1 94 0
+ 172 0032 3B1C     		mov	r3, r7
+ 173 0034 0A33     		add	r3, r3, #10
+ 174 0036 0122     		mov	r2, #1
+ 175 0038 1A70     		strb	r2, [r3]
+ 176 003a 10E0     		b	.L15
+ 177              	.L16:
+  95:.\myFunctions.c **** 		{
+  96:.\myFunctions.c **** 			value*=10u;
+ 178              		.loc 1 96 0 discriminator 2
+ 179 003c 3A1C     		mov	r2, r7
+ 180 003e 0C32     		add	r2, r2, #12
+ 181 0040 3B1C     		mov	r3, r7
+ 182 0042 0C33     		add	r3, r3, #12
+ 183 0044 1B88     		ldrh	r3, [r3]
+ 184 0046 191C     		add	r1, r3, #0
+ 185 0048 8900     		lsl	r1, r1, #2
+ 186 004a CB18     		add	r3, r1, r3
+ 187 004c DB18     		add	r3, r3, r3
+ 188 004e 1380     		strh	r3, [r2]
+  94:.\myFunctions.c **** 		for(j=1u;j<(size-i);++j) //shift digit to correct position in base 10
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccTTTBzS.s 			page 6
+
+
+ 189              		.loc 1 94 0 discriminator 2
+ 190 0050 3B1C     		mov	r3, r7
+ 191 0052 0A33     		add	r3, r3, #10
+ 192 0054 3A1C     		mov	r2, r7
+ 193 0056 0A32     		add	r2, r2, #10
+ 194 0058 1278     		ldrb	r2, [r2]
+ 195 005a 0132     		add	r2, r2, #1
+ 196 005c 1A70     		strb	r2, [r3]
+ 197              	.L15:
+  94:.\myFunctions.c **** 		for(j=1u;j<(size-i);++j) //shift digit to correct position in base 10
+ 198              		.loc 1 94 0 is_stmt 0 discriminator 1
+ 199 005e 3B1C     		mov	r3, r7
+ 200 0060 0A33     		add	r3, r3, #10
+ 201 0062 1A78     		ldrb	r2, [r3]
+ 202 0064 FB1C     		add	r3, r7, #3
+ 203 0066 1978     		ldrb	r1, [r3]
+ 204 0068 3B1C     		mov	r3, r7
+ 205 006a 0B33     		add	r3, r3, #11
+ 206 006c 1B78     		ldrb	r3, [r3]
+ 207 006e CB1A     		sub	r3, r1, r3
+ 208 0070 9A42     		cmp	r2, r3
+ 209 0072 E3DB     		blt	.L16
+  97:.\myFunctions.c **** 		}
+  98:.\myFunctions.c **** 
+  99:.\myFunctions.c **** 		number+=value;
+ 210              		.loc 1 99 0 is_stmt 1
+ 211 0074 3B1C     		mov	r3, r7
+ 212 0076 0E33     		add	r3, r3, #14
+ 213 0078 391C     		mov	r1, r7
+ 214 007a 0E31     		add	r1, r1, #14
+ 215 007c 3A1C     		mov	r2, r7
+ 216 007e 0C32     		add	r2, r2, #12
+ 217 0080 0988     		ldrh	r1, [r1]
+ 218 0082 1288     		ldrh	r2, [r2]
+ 219 0084 8A18     		add	r2, r1, r2
+ 220 0086 1A80     		strh	r2, [r3]
+  91:.\myFunctions.c **** 	for(i=0u;i<size;++i)
+ 221              		.loc 1 91 0
+ 222 0088 3B1C     		mov	r3, r7
+ 223 008a 0B33     		add	r3, r3, #11
+ 224 008c 3A1C     		mov	r2, r7
+ 225 008e 0B32     		add	r2, r2, #11
+ 226 0090 1278     		ldrb	r2, [r2]
+ 227 0092 0132     		add	r2, r2, #1
+ 228 0094 1A70     		strb	r2, [r3]
+ 229              	.L14:
+  91:.\myFunctions.c **** 	for(i=0u;i<size;++i)
+ 230              		.loc 1 91 0 is_stmt 0 discriminator 1
+ 231 0096 3A1C     		mov	r2, r7
+ 232 0098 0B32     		add	r2, r2, #11
+ 233 009a FB1C     		add	r3, r7, #3
+ 234 009c 1278     		ldrb	r2, [r2]
+ 235 009e 1B78     		ldrb	r3, [r3]
+ 236 00a0 9A42     		cmp	r2, r3
+ 237 00a2 BDD3     		bcc	.L17
+ 100:.\myFunctions.c **** 		//}
+ 101:.\myFunctions.c **** 	}
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccTTTBzS.s 			page 7
+
+
+ 102:.\myFunctions.c **** 	return number;
+ 238              		.loc 1 102 0 is_stmt 1
+ 239 00a4 3B1C     		mov	r3, r7
+ 240 00a6 0E33     		add	r3, r3, #14
+ 241 00a8 1B88     		ldrh	r3, [r3]
+ 103:.\myFunctions.c **** }
+ 242              		.loc 1 103 0
+ 243 00aa 181C     		mov	r0, r3
+ 244 00ac BD46     		mov	sp, r7
+ 245 00ae 04B0     		add	sp, sp, #16
+ 246              		@ sp needed
+ 247 00b0 80BD     		pop	{r7, pc}
+ 248              		.cfi_endproc
+ 249              	.LFE36:
+ 250              		.size	ConvertDigitsToU16, .-ConvertDigitsToU16
+ 251 00b2 C046     		.text
+ 252              	.Letext0:
+ 253              		.file 2 ".\\Generated_Source\\PSoC4/cytypes.h"
+ 254              		.section	.debug_info,"",%progbits
+ 255              	.Ldebug_info0:
+ 256 0000 3C010000 		.4byte	0x13c
+ 257 0004 0400     		.2byte	0x4
+ 258 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 259 000a 04       		.byte	0x4
+ 260 000b 01       		.uleb128 0x1
+ 261 000c 2B010000 		.4byte	.LASF21
+ 262 0010 01       		.byte	0x1
+ 263 0011 DC000000 		.4byte	.LASF22
+ 264 0015 64000000 		.4byte	.LASF23
+ 265 0019 00000000 		.4byte	.Ldebug_ranges0+0
+ 266 001d 00000000 		.4byte	0
+ 267 0021 00000000 		.4byte	.Ldebug_line0
+ 268 0025 02       		.uleb128 0x2
+ 269 0026 01       		.byte	0x1
+ 270 0027 06       		.byte	0x6
+ 271 0028 25000000 		.4byte	.LASF0
+ 272 002c 02       		.uleb128 0x2
+ 273 002d 01       		.byte	0x1
+ 274 002e 08       		.byte	0x8
+ 275 002f EC000000 		.4byte	.LASF1
+ 276 0033 02       		.uleb128 0x2
+ 277 0034 02       		.byte	0x2
+ 278 0035 05       		.byte	0x5
+ 279 0036 CC010000 		.4byte	.LASF2
+ 280 003a 02       		.uleb128 0x2
+ 281 003b 02       		.byte	0x2
+ 282 003c 07       		.byte	0x7
+ 283 003d A7010000 		.4byte	.LASF3
+ 284 0041 02       		.uleb128 0x2
+ 285 0042 04       		.byte	0x4
+ 286 0043 05       		.byte	0x5
+ 287 0044 12010000 		.4byte	.LASF4
+ 288 0048 02       		.uleb128 0x2
+ 289 0049 04       		.byte	0x4
+ 290 004a 07       		.byte	0x7
+ 291 004b 37000000 		.4byte	.LASF5
+ 292 004f 02       		.uleb128 0x2
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccTTTBzS.s 			page 8
+
+
+ 293 0050 08       		.byte	0x8
+ 294 0051 05       		.byte	0x5
+ 295 0052 00000000 		.4byte	.LASF6
+ 296 0056 02       		.uleb128 0x2
+ 297 0057 08       		.byte	0x8
+ 298 0058 07       		.byte	0x7
+ 299 0059 C5000000 		.4byte	.LASF7
+ 300 005d 03       		.uleb128 0x3
+ 301 005e 04       		.byte	0x4
+ 302 005f 05       		.byte	0x5
+ 303 0060 696E7400 		.ascii	"int\000"
+ 304 0064 02       		.uleb128 0x2
+ 305 0065 04       		.byte	0x4
+ 306 0066 07       		.byte	0x7
+ 307 0067 0E000000 		.4byte	.LASF8
+ 308 006b 04       		.uleb128 0x4
+ 309 006c 31000000 		.4byte	.LASF9
+ 310 0070 02       		.byte	0x2
+ 311 0071 A1       		.byte	0xa1
+ 312 0072 2C000000 		.4byte	0x2c
+ 313 0076 04       		.uleb128 0x4
+ 314 0077 D6010000 		.4byte	.LASF10
+ 315 007b 02       		.byte	0x2
+ 316 007c A2       		.byte	0xa2
+ 317 007d 3A000000 		.4byte	0x3a
+ 318 0081 02       		.uleb128 0x2
+ 319 0082 04       		.byte	0x4
+ 320 0083 04       		.byte	0x4
+ 321 0084 5E000000 		.4byte	.LASF11
+ 322 0088 02       		.uleb128 0x2
+ 323 0089 08       		.byte	0x8
+ 324 008a 04       		.byte	0x4
+ 325 008b 24010000 		.4byte	.LASF12
+ 326 008f 02       		.uleb128 0x2
+ 327 0090 01       		.byte	0x1
+ 328 0091 08       		.byte	0x8
+ 329 0092 FA000000 		.4byte	.LASF13
+ 330 0096 02       		.uleb128 0x2
+ 331 0097 04       		.byte	0x4
+ 332 0098 07       		.byte	0x7
+ 333 0099 DD010000 		.4byte	.LASF14
+ 334 009d 05       		.uleb128 0x5
+ 335 009e 04       		.byte	0x4
+ 336 009f 6B000000 		.4byte	0x6b
+ 337 00a3 06       		.uleb128 0x6
+ 338 00a4 49000000 		.4byte	.LASF24
+ 339 00a8 01       		.byte	0x1
+ 340 00a9 14       		.byte	0x14
+ 341 00aa 6B000000 		.4byte	0x6b
+ 342 00ae 00000000 		.4byte	.LFB35
+ 343 00b2 6C000000 		.4byte	.LFE35-.LFB35
+ 344 00b6 01       		.uleb128 0x1
+ 345 00b7 9C       		.byte	0x9c
+ 346 00b8 D9000000 		.4byte	0xd9
+ 347 00bc 07       		.uleb128 0x7
+ 348 00bd 1B000000 		.4byte	.LASF15
+ 349 00c1 01       		.byte	0x1
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccTTTBzS.s 			page 9
+
+
+ 350 00c2 14       		.byte	0x14
+ 351 00c3 6B000000 		.4byte	0x6b
+ 352 00c7 02       		.uleb128 0x2
+ 353 00c8 91       		.byte	0x91
+ 354 00c9 77       		.sleb128 -9
+ 355 00ca 07       		.uleb128 0x7
+ 356 00cb 1B010000 		.4byte	.LASF16
+ 357 00cf 01       		.byte	0x1
+ 358 00d0 14       		.byte	0x14
+ 359 00d1 9D000000 		.4byte	0x9d
+ 360 00d5 02       		.uleb128 0x2
+ 361 00d6 91       		.byte	0x91
+ 362 00d7 70       		.sleb128 -16
+ 363 00d8 00       		.byte	0
+ 364 00d9 08       		.uleb128 0x8
+ 365 00da FF000000 		.4byte	.LASF25
+ 366 00de 01       		.byte	0x1
+ 367 00df 57       		.byte	0x57
+ 368 00e0 76000000 		.4byte	0x76
+ 369 00e4 00000000 		.4byte	.LFB36
+ 370 00e8 B2000000 		.4byte	.LFE36-.LFB36
+ 371 00ec 01       		.uleb128 0x1
+ 372 00ed 9C       		.byte	0x9c
+ 373 00ee 07       		.uleb128 0x7
+ 374 00ef BA010000 		.4byte	.LASF17
+ 375 00f3 01       		.byte	0x1
+ 376 00f4 57       		.byte	0x57
+ 377 00f5 9D000000 		.4byte	0x9d
+ 378 00f9 02       		.uleb128 0x2
+ 379 00fa 91       		.byte	0x91
+ 380 00fb 6C       		.sleb128 -20
+ 381 00fc 07       		.uleb128 0x7
+ 382 00fd C1010000 		.4byte	.LASF18
+ 383 0101 01       		.byte	0x1
+ 384 0102 57       		.byte	0x57
+ 385 0103 6B000000 		.4byte	0x6b
+ 386 0107 02       		.uleb128 0x2
+ 387 0108 91       		.byte	0x91
+ 388 0109 6B       		.sleb128 -21
+ 389 010a 09       		.uleb128 0x9
+ 390 010b 57000000 		.4byte	.LASF19
+ 391 010f 01       		.byte	0x1
+ 392 0110 59       		.byte	0x59
+ 393 0111 76000000 		.4byte	0x76
+ 394 0115 02       		.uleb128 0x2
+ 395 0116 91       		.byte	0x91
+ 396 0117 76       		.sleb128 -10
+ 397 0118 09       		.uleb128 0x9
+ 398 0119 C6010000 		.4byte	.LASF20
+ 399 011d 01       		.byte	0x1
+ 400 011e 59       		.byte	0x59
+ 401 011f 76000000 		.4byte	0x76
+ 402 0123 02       		.uleb128 0x2
+ 403 0124 91       		.byte	0x91
+ 404 0125 74       		.sleb128 -12
+ 405 0126 0A       		.uleb128 0xa
+ 406 0127 6900     		.ascii	"i\000"
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccTTTBzS.s 			page 10
+
+
+ 407 0129 01       		.byte	0x1
+ 408 012a 5A       		.byte	0x5a
+ 409 012b 6B000000 		.4byte	0x6b
+ 410 012f 02       		.uleb128 0x2
+ 411 0130 91       		.byte	0x91
+ 412 0131 73       		.sleb128 -13
+ 413 0132 0A       		.uleb128 0xa
+ 414 0133 6A00     		.ascii	"j\000"
+ 415 0135 01       		.byte	0x1
+ 416 0136 5A       		.byte	0x5a
+ 417 0137 6B000000 		.4byte	0x6b
+ 418 013b 02       		.uleb128 0x2
+ 419 013c 91       		.byte	0x91
+ 420 013d 72       		.sleb128 -14
+ 421 013e 00       		.byte	0
+ 422 013f 00       		.byte	0
+ 423              		.section	.debug_abbrev,"",%progbits
+ 424              	.Ldebug_abbrev0:
+ 425 0000 01       		.uleb128 0x1
+ 426 0001 11       		.uleb128 0x11
+ 427 0002 01       		.byte	0x1
+ 428 0003 25       		.uleb128 0x25
+ 429 0004 0E       		.uleb128 0xe
+ 430 0005 13       		.uleb128 0x13
+ 431 0006 0B       		.uleb128 0xb
+ 432 0007 03       		.uleb128 0x3
+ 433 0008 0E       		.uleb128 0xe
+ 434 0009 1B       		.uleb128 0x1b
+ 435 000a 0E       		.uleb128 0xe
+ 436 000b 55       		.uleb128 0x55
+ 437 000c 17       		.uleb128 0x17
+ 438 000d 11       		.uleb128 0x11
+ 439 000e 01       		.uleb128 0x1
+ 440 000f 10       		.uleb128 0x10
+ 441 0010 17       		.uleb128 0x17
+ 442 0011 00       		.byte	0
+ 443 0012 00       		.byte	0
+ 444 0013 02       		.uleb128 0x2
+ 445 0014 24       		.uleb128 0x24
+ 446 0015 00       		.byte	0
+ 447 0016 0B       		.uleb128 0xb
+ 448 0017 0B       		.uleb128 0xb
+ 449 0018 3E       		.uleb128 0x3e
+ 450 0019 0B       		.uleb128 0xb
+ 451 001a 03       		.uleb128 0x3
+ 452 001b 0E       		.uleb128 0xe
+ 453 001c 00       		.byte	0
+ 454 001d 00       		.byte	0
+ 455 001e 03       		.uleb128 0x3
+ 456 001f 24       		.uleb128 0x24
+ 457 0020 00       		.byte	0
+ 458 0021 0B       		.uleb128 0xb
+ 459 0022 0B       		.uleb128 0xb
+ 460 0023 3E       		.uleb128 0x3e
+ 461 0024 0B       		.uleb128 0xb
+ 462 0025 03       		.uleb128 0x3
+ 463 0026 08       		.uleb128 0x8
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccTTTBzS.s 			page 11
+
+
+ 464 0027 00       		.byte	0
+ 465 0028 00       		.byte	0
+ 466 0029 04       		.uleb128 0x4
+ 467 002a 16       		.uleb128 0x16
+ 468 002b 00       		.byte	0
+ 469 002c 03       		.uleb128 0x3
+ 470 002d 0E       		.uleb128 0xe
+ 471 002e 3A       		.uleb128 0x3a
+ 472 002f 0B       		.uleb128 0xb
+ 473 0030 3B       		.uleb128 0x3b
+ 474 0031 0B       		.uleb128 0xb
+ 475 0032 49       		.uleb128 0x49
+ 476 0033 13       		.uleb128 0x13
+ 477 0034 00       		.byte	0
+ 478 0035 00       		.byte	0
+ 479 0036 05       		.uleb128 0x5
+ 480 0037 0F       		.uleb128 0xf
+ 481 0038 00       		.byte	0
+ 482 0039 0B       		.uleb128 0xb
+ 483 003a 0B       		.uleb128 0xb
+ 484 003b 49       		.uleb128 0x49
+ 485 003c 13       		.uleb128 0x13
+ 486 003d 00       		.byte	0
+ 487 003e 00       		.byte	0
+ 488 003f 06       		.uleb128 0x6
+ 489 0040 2E       		.uleb128 0x2e
+ 490 0041 01       		.byte	0x1
+ 491 0042 3F       		.uleb128 0x3f
+ 492 0043 19       		.uleb128 0x19
+ 493 0044 03       		.uleb128 0x3
+ 494 0045 0E       		.uleb128 0xe
+ 495 0046 3A       		.uleb128 0x3a
+ 496 0047 0B       		.uleb128 0xb
+ 497 0048 3B       		.uleb128 0x3b
+ 498 0049 0B       		.uleb128 0xb
+ 499 004a 27       		.uleb128 0x27
+ 500 004b 19       		.uleb128 0x19
+ 501 004c 49       		.uleb128 0x49
+ 502 004d 13       		.uleb128 0x13
+ 503 004e 11       		.uleb128 0x11
+ 504 004f 01       		.uleb128 0x1
+ 505 0050 12       		.uleb128 0x12
+ 506 0051 06       		.uleb128 0x6
+ 507 0052 40       		.uleb128 0x40
+ 508 0053 18       		.uleb128 0x18
+ 509 0054 9742     		.uleb128 0x2117
+ 510 0056 19       		.uleb128 0x19
+ 511 0057 01       		.uleb128 0x1
+ 512 0058 13       		.uleb128 0x13
+ 513 0059 00       		.byte	0
+ 514 005a 00       		.byte	0
+ 515 005b 07       		.uleb128 0x7
+ 516 005c 05       		.uleb128 0x5
+ 517 005d 00       		.byte	0
+ 518 005e 03       		.uleb128 0x3
+ 519 005f 0E       		.uleb128 0xe
+ 520 0060 3A       		.uleb128 0x3a
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccTTTBzS.s 			page 12
+
+
+ 521 0061 0B       		.uleb128 0xb
+ 522 0062 3B       		.uleb128 0x3b
+ 523 0063 0B       		.uleb128 0xb
+ 524 0064 49       		.uleb128 0x49
+ 525 0065 13       		.uleb128 0x13
+ 526 0066 02       		.uleb128 0x2
+ 527 0067 18       		.uleb128 0x18
+ 528 0068 00       		.byte	0
+ 529 0069 00       		.byte	0
+ 530 006a 08       		.uleb128 0x8
+ 531 006b 2E       		.uleb128 0x2e
+ 532 006c 01       		.byte	0x1
+ 533 006d 3F       		.uleb128 0x3f
+ 534 006e 19       		.uleb128 0x19
+ 535 006f 03       		.uleb128 0x3
+ 536 0070 0E       		.uleb128 0xe
+ 537 0071 3A       		.uleb128 0x3a
+ 538 0072 0B       		.uleb128 0xb
+ 539 0073 3B       		.uleb128 0x3b
+ 540 0074 0B       		.uleb128 0xb
+ 541 0075 27       		.uleb128 0x27
+ 542 0076 19       		.uleb128 0x19
+ 543 0077 49       		.uleb128 0x49
+ 544 0078 13       		.uleb128 0x13
+ 545 0079 11       		.uleb128 0x11
+ 546 007a 01       		.uleb128 0x1
+ 547 007b 12       		.uleb128 0x12
+ 548 007c 06       		.uleb128 0x6
+ 549 007d 40       		.uleb128 0x40
+ 550 007e 18       		.uleb128 0x18
+ 551 007f 9742     		.uleb128 0x2117
+ 552 0081 19       		.uleb128 0x19
+ 553 0082 00       		.byte	0
+ 554 0083 00       		.byte	0
+ 555 0084 09       		.uleb128 0x9
+ 556 0085 34       		.uleb128 0x34
+ 557 0086 00       		.byte	0
+ 558 0087 03       		.uleb128 0x3
+ 559 0088 0E       		.uleb128 0xe
+ 560 0089 3A       		.uleb128 0x3a
+ 561 008a 0B       		.uleb128 0xb
+ 562 008b 3B       		.uleb128 0x3b
+ 563 008c 0B       		.uleb128 0xb
+ 564 008d 49       		.uleb128 0x49
+ 565 008e 13       		.uleb128 0x13
+ 566 008f 02       		.uleb128 0x2
+ 567 0090 18       		.uleb128 0x18
+ 568 0091 00       		.byte	0
+ 569 0092 00       		.byte	0
+ 570 0093 0A       		.uleb128 0xa
+ 571 0094 34       		.uleb128 0x34
+ 572 0095 00       		.byte	0
+ 573 0096 03       		.uleb128 0x3
+ 574 0097 08       		.uleb128 0x8
+ 575 0098 3A       		.uleb128 0x3a
+ 576 0099 0B       		.uleb128 0xb
+ 577 009a 3B       		.uleb128 0x3b
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccTTTBzS.s 			page 13
+
+
+ 578 009b 0B       		.uleb128 0xb
+ 579 009c 49       		.uleb128 0x49
+ 580 009d 13       		.uleb128 0x13
+ 581 009e 02       		.uleb128 0x2
+ 582 009f 18       		.uleb128 0x18
+ 583 00a0 00       		.byte	0
+ 584 00a1 00       		.byte	0
+ 585 00a2 00       		.byte	0
+ 586              		.section	.debug_aranges,"",%progbits
+ 587 0000 24000000 		.4byte	0x24
+ 588 0004 0200     		.2byte	0x2
+ 589 0006 00000000 		.4byte	.Ldebug_info0
+ 590 000a 04       		.byte	0x4
+ 591 000b 00       		.byte	0
+ 592 000c 0000     		.2byte	0
+ 593 000e 0000     		.2byte	0
+ 594 0010 00000000 		.4byte	.LFB35
+ 595 0014 6C000000 		.4byte	.LFE35-.LFB35
+ 596 0018 00000000 		.4byte	.LFB36
+ 597 001c B2000000 		.4byte	.LFE36-.LFB36
+ 598 0020 00000000 		.4byte	0
+ 599 0024 00000000 		.4byte	0
+ 600              		.section	.debug_ranges,"",%progbits
+ 601              	.Ldebug_ranges0:
+ 602 0000 00000000 		.4byte	.LFB35
+ 603 0004 6C000000 		.4byte	.LFE35
+ 604 0008 00000000 		.4byte	.LFB36
+ 605 000c B2000000 		.4byte	.LFE36
+ 606 0010 00000000 		.4byte	0
+ 607 0014 00000000 		.4byte	0
+ 608              		.section	.debug_line,"",%progbits
+ 609              	.Ldebug_line0:
+ 610 0000 A6000000 		.section	.debug_str,"MS",%progbits,1
+ 610      02004C00 
+ 610      00000201 
+ 610      FB0E0D00 
+ 610      01010101 
+ 611              	.LASF6:
+ 612 0000 6C6F6E67 		.ascii	"long long int\000"
+ 612      206C6F6E 
+ 612      6720696E 
+ 612      7400
+ 613              	.LASF8:
+ 614 000e 756E7369 		.ascii	"unsigned int\000"
+ 614      676E6564 
+ 614      20696E74 
+ 614      00
+ 615              	.LASF15:
+ 616 001b 6E657874 		.ascii	"nextState\000"
+ 616      53746174 
+ 616      6500
+ 617              	.LASF0:
+ 618 0025 7369676E 		.ascii	"signed char\000"
+ 618      65642063 
+ 618      68617200 
+ 619              	.LASF9:
+ 620 0031 75696E74 		.ascii	"uint8\000"
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccTTTBzS.s 			page 14
+
+
+ 620      3800
+ 621              	.LASF5:
+ 622 0037 6C6F6E67 		.ascii	"long unsigned int\000"
+ 622      20756E73 
+ 622      69676E65 
+ 622      6420696E 
+ 622      7400
+ 623              	.LASF24:
+ 624 0049 4C6F6164 		.ascii	"LoadNextState\000"
+ 624      4E657874 
+ 624      53746174 
+ 624      6500
+ 625              	.LASF19:
+ 626 0057 6E756D62 		.ascii	"number\000"
+ 626      657200
+ 627              	.LASF11:
+ 628 005e 666C6F61 		.ascii	"float\000"
+ 628      7400
+ 629              	.LASF23:
+ 630 0064 433A5C55 		.ascii	"C:\\Users\\ksoneda\\Documents\\PSoC Creator\\Senior"
+ 630      73657273 
+ 630      5C6B736F 
+ 630      6E656461 
+ 630      5C446F63 
+ 631 0092 20446573 		.ascii	" Design\\AQM Firmware BLE\\AQM Firmware BLE v1.cyds"
+ 631      69676E5C 
+ 631      41514D20 
+ 631      4669726D 
+ 631      77617265 
+ 632 00c3 6E00     		.ascii	"n\000"
+ 633              	.LASF7:
+ 634 00c5 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 634      206C6F6E 
+ 634      6720756E 
+ 634      7369676E 
+ 634      65642069 
+ 635              	.LASF22:
+ 636 00dc 2E5C6D79 		.ascii	".\\myFunctions.c\000"
+ 636      46756E63 
+ 636      74696F6E 
+ 636      732E6300 
+ 637              	.LASF1:
+ 638 00ec 756E7369 		.ascii	"unsigned char\000"
+ 638      676E6564 
+ 638      20636861 
+ 638      7200
+ 639              	.LASF13:
+ 640 00fa 63686172 		.ascii	"char\000"
+ 640      00
+ 641              	.LASF25:
+ 642 00ff 436F6E76 		.ascii	"ConvertDigitsToU16\000"
+ 642      65727444 
+ 642      69676974 
+ 642      73546F55 
+ 642      313600
+ 643              	.LASF4:
+ 644 0112 6C6F6E67 		.ascii	"long int\000"
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccTTTBzS.s 			page 15
+
+
+ 644      20696E74 
+ 644      00
+ 645              	.LASF16:
+ 646 011b 72656164 		.ascii	"readMode\000"
+ 646      4D6F6465 
+ 646      00
+ 647              	.LASF12:
+ 648 0124 646F7562 		.ascii	"double\000"
+ 648      6C6500
+ 649              	.LASF21:
+ 650 012b 474E5520 		.ascii	"GNU C 4.8.4 20140526 (release) [ARM/embedded-4_8-br"
+ 650      4320342E 
+ 650      382E3420 
+ 650      32303134 
+ 650      30353236 
+ 651 015e 616E6368 		.ascii	"anch revision 211358] -mcpu=cortex-m0 -mthumb -g -O"
+ 651      20726576 
+ 651      6973696F 
+ 651      6E203231 
+ 651      31333538 
+ 652 0191 30202D66 		.ascii	"0 -ffunction-sections\000"
+ 652      66756E63 
+ 652      74696F6E 
+ 652      2D736563 
+ 652      74696F6E 
+ 653              	.LASF3:
+ 654 01a7 73686F72 		.ascii	"short unsigned int\000"
+ 654      7420756E 
+ 654      7369676E 
+ 654      65642069 
+ 654      6E7400
+ 655              	.LASF17:
+ 656 01ba 64696769 		.ascii	"digits\000"
+ 656      747300
+ 657              	.LASF18:
+ 658 01c1 73697A65 		.ascii	"size\000"
+ 658      00
+ 659              	.LASF20:
+ 660 01c6 76616C75 		.ascii	"value\000"
+ 660      6500
+ 661              	.LASF2:
+ 662 01cc 73686F72 		.ascii	"short int\000"
+ 662      7420696E 
+ 662      7400
+ 663              	.LASF10:
+ 664 01d6 75696E74 		.ascii	"uint16\000"
+ 664      313600
+ 665              	.LASF14:
+ 666 01dd 73697A65 		.ascii	"sizetype\000"
+ 666      74797065 
+ 666      00
+ 667              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 4.8.4 20140526 (release) [ARM/embedded-4_8-br

@@ -1,0 +1,478 @@
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccmTO5O7.s 			page 1
+
+
+   1              		.cpu cortex-m0
+   2              		.fpu softvfp
+   3              		.eabi_attribute 20, 1
+   4              		.eabi_attribute 21, 1
+   5              		.eabi_attribute 23, 3
+   6              		.eabi_attribute 24, 1
+   7              		.eabi_attribute 25, 1
+   8              		.eabi_attribute 26, 1
+   9              		.eabi_attribute 30, 6
+  10              		.eabi_attribute 34, 0
+  11              		.eabi_attribute 18, 4
+  12              		.code	16
+  13              		.file	"HandleLowPower.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.section	.text.HandleLowPowerMode,"ax",%progbits
+  18              		.align	2
+  19              		.global	HandleLowPowerMode
+  20              		.code	16
+  21              		.thumb_func
+  22              		.type	HandleLowPowerMode, %function
+  23              	HandleLowPowerMode:
+  24              	.LFB35:
+  25              		.file 1 ".\\HandleLowPower.c"
+   1:.\HandleLowPower.c **** /* ========================================
+   2:.\HandleLowPower.c ****  *
+   3:.\HandleLowPower.c ****  * Copyright YOUR COMPANY, THE YEAR
+   4:.\HandleLowPower.c ****  * All Rights Reserved
+   5:.\HandleLowPower.c ****  * UNPUBLISHED, LICENSED SOFTWARE.
+   6:.\HandleLowPower.c ****  *
+   7:.\HandleLowPower.c ****  * CONFIDENTIAL AND PROPRIETARY INFORMATION
+   8:.\HandleLowPower.c ****  * WHICH IS THE PROPERTY OF your company.
+   9:.\HandleLowPower.c ****  *
+  10:.\HandleLowPower.c ****  * ========================================
+  11:.\HandleLowPower.c **** */
+  12:.\HandleLowPower.c **** #include <main.h>
+  13:.\HandleLowPower.c **** 
+  14:.\HandleLowPower.c **** void HandleLowPowerMode(void)
+  15:.\HandleLowPower.c **** {
+  26              		.loc 1 15 0
+  27              		.cfi_startproc
+  28 0000 80B5     		push	{r7, lr}
+  29              		.cfi_def_cfa_offset 8
+  30              		.cfi_offset 7, -8
+  31              		.cfi_offset 14, -4
+  32 0002 00AF     		add	r7, sp, #0
+  33              		.cfi_def_cfa_register 7
+  16:.\HandleLowPower.c **** 	#ifdef ENABLE_LOW_POWER_MODE
+  17:.\HandleLowPower.c **** 		/* Local variable to store the status of BLESS Hardware block */
+  18:.\HandleLowPower.c **** 		CYBLE_LP_MODE_T sleepMode;
+  19:.\HandleLowPower.c **** 		CYBLE_BLESS_STATE_T blessState;
+  20:.\HandleLowPower.c **** 		
+  21:.\HandleLowPower.c **** 		
+  22:.\HandleLowPower.c **** 		/* Put BLESS into Deep Sleep and check the return status */
+  23:.\HandleLowPower.c **** 		sleepMode = CyBle_EnterLPM(CYBLE_BLESS_DEEPSLEEP);
+  24:.\HandleLowPower.c **** 		
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccmTO5O7.s 			page 2
+
+
+  25:.\HandleLowPower.c **** 		/* Disable global interrupt to prevent changes from any other interrupt ISR */
+  26:.\HandleLowPower.c **** 		CyGlobalIntDisable;
+  27:.\HandleLowPower.c **** 	
+  28:.\HandleLowPower.c **** 		/* Check the Status of BLESS */
+  29:.\HandleLowPower.c **** 		blessState = CyBle_GetBleSsState();
+  30:.\HandleLowPower.c **** 
+  31:.\HandleLowPower.c **** 		if(sleepMode == CYBLE_BLESS_DEEPSLEEP)
+  32:.\HandleLowPower.c **** 		{
+  33:.\HandleLowPower.c **** 		    /* If the ECO has started or the BLESS can go to Deep Sleep, then place CPU 
+  34:.\HandleLowPower.c **** 			* to Deep Sleep */
+  35:.\HandleLowPower.c **** 			if(blessState == CYBLE_BLESS_STATE_ECO_ON || blessState == CYBLE_BLESS_STATE_DEEPSLEEP)
+  36:.\HandleLowPower.c **** 		    {
+  37:.\HandleLowPower.c **** 		        CySysPmDeepSleep();
+  38:.\HandleLowPower.c **** 		 	}
+  39:.\HandleLowPower.c **** 		}
+  40:.\HandleLowPower.c **** 		else
+  41:.\HandleLowPower.c **** 		{
+  42:.\HandleLowPower.c **** 		    if(blessState != CYBLE_BLESS_STATE_EVENT_CLOSE)
+  43:.\HandleLowPower.c **** 		    {
+  44:.\HandleLowPower.c **** 				/* If the BLESS hardware block cannot go to Deep Sleep and BLE Event has not 
+  45:.\HandleLowPower.c **** 				* closed yet, then place CPU to Sleep */
+  46:.\HandleLowPower.c **** 		        CySysPmSleep();
+  47:.\HandleLowPower.c **** 		    }
+  48:.\HandleLowPower.c **** 		}
+  49:.\HandleLowPower.c **** 		
+  50:.\HandleLowPower.c **** 		/* Re-enable global interrupt mask after wakeup */
+  51:.\HandleLowPower.c **** 		CyGlobalIntEnable;
+  52:.\HandleLowPower.c **** 		
+  53:.\HandleLowPower.c **** 		
+  54:.\HandleLowPower.c **** 	#endif
+  55:.\HandleLowPower.c **** }
+  34              		.loc 1 55 0
+  35 0004 BD46     		mov	sp, r7
+  36              		@ sp needed
+  37 0006 80BD     		pop	{r7, pc}
+  38              		.cfi_endproc
+  39              	.LFE35:
+  40              		.size	HandleLowPowerMode, .-HandleLowPowerMode
+  41              		.section	.text.MyISR,"ax",%progbits
+  42              		.align	2
+  43              		.global	MyISR
+  44              		.code	16
+  45              		.thumb_func
+  46              		.type	MyISR, %function
+  47              	MyISR:
+  48              	.LFB36:
+  56:.\HandleLowPower.c **** 
+  57:.\HandleLowPower.c **** /*******************************************************************************
+  58:.\HandleLowPower.c **** * Function Name: MyISR
+  59:.\HandleLowPower.c **** ********************************************************************************
+  60:.\HandleLowPower.c **** * Summary:
+  61:.\HandleLowPower.c **** *        ISR routine for isr_button. System enters here after CPU wakeup.
+  62:.\HandleLowPower.c **** * Clears pending interrupt.
+  63:.\HandleLowPower.c **** *
+  64:.\HandleLowPower.c **** * Parameters:
+  65:.\HandleLowPower.c **** *  void
+  66:.\HandleLowPower.c **** *
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccmTO5O7.s 			page 3
+
+
+  67:.\HandleLowPower.c **** * Return:
+  68:.\HandleLowPower.c **** *  void
+  69:.\HandleLowPower.c **** *
+  70:.\HandleLowPower.c **** *******************************************************************************/
+  71:.\HandleLowPower.c **** CY_ISR(MyISR)
+  72:.\HandleLowPower.c **** {
+  49              		.loc 1 72 0
+  50              		.cfi_startproc
+  51 0000 80B5     		push	{r7, lr}
+  52              		.cfi_def_cfa_offset 8
+  53              		.cfi_offset 7, -8
+  54              		.cfi_offset 14, -4
+  55 0002 00AF     		add	r7, sp, #0
+  56              		.cfi_def_cfa_register 7
+  73:.\HandleLowPower.c **** 	/* Clear Pending interrupts */
+  74:.\HandleLowPower.c **** 	isr_button_ClearPending();
+  57              		.loc 1 74 0
+  58 0004 FFF7FEFF 		bl	isr_button_ClearPending
+  75:.\HandleLowPower.c **** 	
+  76:.\HandleLowPower.c **** 	User_Button_ClearInterrupt();
+  59              		.loc 1 76 0
+  60 0008 FFF7FEFF 		bl	User_Button_ClearInterrupt
+  77:.\HandleLowPower.c **** }
+  61              		.loc 1 77 0
+  62 000c BD46     		mov	sp, r7
+  63              		@ sp needed
+  64 000e 80BD     		pop	{r7, pc}
+  65              		.cfi_endproc
+  66              	.LFE36:
+  67              		.size	MyISR, .-MyISR
+  68              		.text
+  69              	.Letext0:
+  70              		.section	.debug_info,"",%progbits
+  71              	.Ldebug_info0:
+  72 0000 A6000000 		.4byte	0xa6
+  73 0004 0400     		.2byte	0x4
+  74 0006 00000000 		.4byte	.Ldebug_abbrev0
+  75 000a 04       		.byte	0x4
+  76 000b 01       		.uleb128 0x1
+  77 000c E1000000 		.4byte	.LASF15
+  78 0010 01       		.byte	0x1
+  79 0011 1B000000 		.4byte	.LASF16
+  80 0015 5D000000 		.4byte	.LASF17
+  81 0019 00000000 		.4byte	.Ldebug_ranges0+0
+  82 001d 00000000 		.4byte	0
+  83 0021 00000000 		.4byte	.Ldebug_line0
+  84 0025 02       		.uleb128 0x2
+  85 0026 01       		.byte	0x1
+  86 0027 06       		.byte	0x6
+  87 0028 70010000 		.4byte	.LASF0
+  88 002c 02       		.uleb128 0x2
+  89 002d 01       		.byte	0x1
+  90 002e 08       		.byte	0x8
+  91 002f BE000000 		.4byte	.LASF1
+  92 0033 02       		.uleb128 0x2
+  93 0034 02       		.byte	0x2
+  94 0035 05       		.byte	0x5
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccmTO5O7.s 			page 4
+
+
+  95 0036 82010000 		.4byte	.LASF2
+  96 003a 02       		.uleb128 0x2
+  97 003b 02       		.byte	0x2
+  98 003c 07       		.byte	0x7
+  99 003d 5D010000 		.4byte	.LASF3
+ 100 0041 02       		.uleb128 0x2
+ 101 0042 04       		.byte	0x4
+ 102 0043 05       		.byte	0x5
+ 103 0044 D1000000 		.4byte	.LASF4
+ 104 0048 02       		.uleb128 0x2
+ 105 0049 04       		.byte	0x4
+ 106 004a 07       		.byte	0x7
+ 107 004b 2E000000 		.4byte	.LASF5
+ 108 004f 02       		.uleb128 0x2
+ 109 0050 08       		.byte	0x8
+ 110 0051 05       		.byte	0x5
+ 111 0052 00000000 		.4byte	.LASF6
+ 112 0056 02       		.uleb128 0x2
+ 113 0057 08       		.byte	0x8
+ 114 0058 07       		.byte	0x7
+ 115 0059 40000000 		.4byte	.LASF7
+ 116 005d 03       		.uleb128 0x3
+ 117 005e 04       		.byte	0x4
+ 118 005f 05       		.byte	0x5
+ 119 0060 696E7400 		.ascii	"int\000"
+ 120 0064 02       		.uleb128 0x2
+ 121 0065 04       		.byte	0x4
+ 122 0066 07       		.byte	0x7
+ 123 0067 0E000000 		.4byte	.LASF8
+ 124 006b 02       		.uleb128 0x2
+ 125 006c 04       		.byte	0x4
+ 126 006d 04       		.byte	0x4
+ 127 006e 7C010000 		.4byte	.LASF9
+ 128 0072 02       		.uleb128 0x2
+ 129 0073 08       		.byte	0x8
+ 130 0074 04       		.byte	0x4
+ 131 0075 DA000000 		.4byte	.LASF10
+ 132 0079 02       		.uleb128 0x2
+ 133 007a 01       		.byte	0x1
+ 134 007b 08       		.byte	0x8
+ 135 007c CC000000 		.4byte	.LASF11
+ 136 0080 02       		.uleb128 0x2
+ 137 0081 04       		.byte	0x4
+ 138 0082 07       		.byte	0x7
+ 139 0083 9F010000 		.4byte	.LASF12
+ 140 0087 04       		.uleb128 0x4
+ 141 0088 8C010000 		.4byte	.LASF13
+ 142 008c 01       		.byte	0x1
+ 143 008d 0E       		.byte	0xe
+ 144 008e 00000000 		.4byte	.LFB35
+ 145 0092 08000000 		.4byte	.LFE35-.LFB35
+ 146 0096 01       		.uleb128 0x1
+ 147 0097 9C       		.byte	0x9c
+ 148 0098 05       		.uleb128 0x5
+ 149 0099 57000000 		.4byte	.LASF14
+ 150 009d 01       		.byte	0x1
+ 151 009e 47       		.byte	0x47
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccmTO5O7.s 			page 5
+
+
+ 152 009f 00000000 		.4byte	.LFB36
+ 153 00a3 10000000 		.4byte	.LFE36-.LFB36
+ 154 00a7 01       		.uleb128 0x1
+ 155 00a8 9C       		.byte	0x9c
+ 156 00a9 00       		.byte	0
+ 157              		.section	.debug_abbrev,"",%progbits
+ 158              	.Ldebug_abbrev0:
+ 159 0000 01       		.uleb128 0x1
+ 160 0001 11       		.uleb128 0x11
+ 161 0002 01       		.byte	0x1
+ 162 0003 25       		.uleb128 0x25
+ 163 0004 0E       		.uleb128 0xe
+ 164 0005 13       		.uleb128 0x13
+ 165 0006 0B       		.uleb128 0xb
+ 166 0007 03       		.uleb128 0x3
+ 167 0008 0E       		.uleb128 0xe
+ 168 0009 1B       		.uleb128 0x1b
+ 169 000a 0E       		.uleb128 0xe
+ 170 000b 55       		.uleb128 0x55
+ 171 000c 17       		.uleb128 0x17
+ 172 000d 11       		.uleb128 0x11
+ 173 000e 01       		.uleb128 0x1
+ 174 000f 10       		.uleb128 0x10
+ 175 0010 17       		.uleb128 0x17
+ 176 0011 00       		.byte	0
+ 177 0012 00       		.byte	0
+ 178 0013 02       		.uleb128 0x2
+ 179 0014 24       		.uleb128 0x24
+ 180 0015 00       		.byte	0
+ 181 0016 0B       		.uleb128 0xb
+ 182 0017 0B       		.uleb128 0xb
+ 183 0018 3E       		.uleb128 0x3e
+ 184 0019 0B       		.uleb128 0xb
+ 185 001a 03       		.uleb128 0x3
+ 186 001b 0E       		.uleb128 0xe
+ 187 001c 00       		.byte	0
+ 188 001d 00       		.byte	0
+ 189 001e 03       		.uleb128 0x3
+ 190 001f 24       		.uleb128 0x24
+ 191 0020 00       		.byte	0
+ 192 0021 0B       		.uleb128 0xb
+ 193 0022 0B       		.uleb128 0xb
+ 194 0023 3E       		.uleb128 0x3e
+ 195 0024 0B       		.uleb128 0xb
+ 196 0025 03       		.uleb128 0x3
+ 197 0026 08       		.uleb128 0x8
+ 198 0027 00       		.byte	0
+ 199 0028 00       		.byte	0
+ 200 0029 04       		.uleb128 0x4
+ 201 002a 2E       		.uleb128 0x2e
+ 202 002b 00       		.byte	0
+ 203 002c 3F       		.uleb128 0x3f
+ 204 002d 19       		.uleb128 0x19
+ 205 002e 03       		.uleb128 0x3
+ 206 002f 0E       		.uleb128 0xe
+ 207 0030 3A       		.uleb128 0x3a
+ 208 0031 0B       		.uleb128 0xb
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccmTO5O7.s 			page 6
+
+
+ 209 0032 3B       		.uleb128 0x3b
+ 210 0033 0B       		.uleb128 0xb
+ 211 0034 27       		.uleb128 0x27
+ 212 0035 19       		.uleb128 0x19
+ 213 0036 11       		.uleb128 0x11
+ 214 0037 01       		.uleb128 0x1
+ 215 0038 12       		.uleb128 0x12
+ 216 0039 06       		.uleb128 0x6
+ 217 003a 40       		.uleb128 0x40
+ 218 003b 18       		.uleb128 0x18
+ 219 003c 9742     		.uleb128 0x2117
+ 220 003e 19       		.uleb128 0x19
+ 221 003f 00       		.byte	0
+ 222 0040 00       		.byte	0
+ 223 0041 05       		.uleb128 0x5
+ 224 0042 2E       		.uleb128 0x2e
+ 225 0043 00       		.byte	0
+ 226 0044 3F       		.uleb128 0x3f
+ 227 0045 19       		.uleb128 0x19
+ 228 0046 03       		.uleb128 0x3
+ 229 0047 0E       		.uleb128 0xe
+ 230 0048 3A       		.uleb128 0x3a
+ 231 0049 0B       		.uleb128 0xb
+ 232 004a 3B       		.uleb128 0x3b
+ 233 004b 0B       		.uleb128 0xb
+ 234 004c 27       		.uleb128 0x27
+ 235 004d 19       		.uleb128 0x19
+ 236 004e 11       		.uleb128 0x11
+ 237 004f 01       		.uleb128 0x1
+ 238 0050 12       		.uleb128 0x12
+ 239 0051 06       		.uleb128 0x6
+ 240 0052 40       		.uleb128 0x40
+ 241 0053 18       		.uleb128 0x18
+ 242 0054 9642     		.uleb128 0x2116
+ 243 0056 19       		.uleb128 0x19
+ 244 0057 00       		.byte	0
+ 245 0058 00       		.byte	0
+ 246 0059 00       		.byte	0
+ 247              		.section	.debug_aranges,"",%progbits
+ 248 0000 24000000 		.4byte	0x24
+ 249 0004 0200     		.2byte	0x2
+ 250 0006 00000000 		.4byte	.Ldebug_info0
+ 251 000a 04       		.byte	0x4
+ 252 000b 00       		.byte	0
+ 253 000c 0000     		.2byte	0
+ 254 000e 0000     		.2byte	0
+ 255 0010 00000000 		.4byte	.LFB35
+ 256 0014 08000000 		.4byte	.LFE35-.LFB35
+ 257 0018 00000000 		.4byte	.LFB36
+ 258 001c 10000000 		.4byte	.LFE36-.LFB36
+ 259 0020 00000000 		.4byte	0
+ 260 0024 00000000 		.4byte	0
+ 261              		.section	.debug_ranges,"",%progbits
+ 262              	.Ldebug_ranges0:
+ 263 0000 00000000 		.4byte	.LFB35
+ 264 0004 08000000 		.4byte	.LFE35
+ 265 0008 00000000 		.4byte	.LFB36
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccmTO5O7.s 			page 7
+
+
+ 266 000c 10000000 		.4byte	.LFE36
+ 267 0010 00000000 		.4byte	0
+ 268 0014 00000000 		.4byte	0
+ 269              		.section	.debug_line,"",%progbits
+ 270              	.Ldebug_line0:
+ 271 0000 54000000 		.section	.debug_str,"MS",%progbits,1
+ 271      02002900 
+ 271      00000201 
+ 271      FB0E0D00 
+ 271      01010101 
+ 272              	.LASF6:
+ 273 0000 6C6F6E67 		.ascii	"long long int\000"
+ 273      206C6F6E 
+ 273      6720696E 
+ 273      7400
+ 274              	.LASF8:
+ 275 000e 756E7369 		.ascii	"unsigned int\000"
+ 275      676E6564 
+ 275      20696E74 
+ 275      00
+ 276              	.LASF16:
+ 277 001b 2E5C4861 		.ascii	".\\HandleLowPower.c\000"
+ 277      6E646C65 
+ 277      4C6F7750 
+ 277      6F776572 
+ 277      2E6300
+ 278              	.LASF5:
+ 279 002e 6C6F6E67 		.ascii	"long unsigned int\000"
+ 279      20756E73 
+ 279      69676E65 
+ 279      6420696E 
+ 279      7400
+ 280              	.LASF7:
+ 281 0040 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 281      206C6F6E 
+ 281      6720756E 
+ 281      7369676E 
+ 281      65642069 
+ 282              	.LASF14:
+ 283 0057 4D794953 		.ascii	"MyISR\000"
+ 283      5200
+ 284              	.LASF17:
+ 285 005d 433A5C55 		.ascii	"C:\\Users\\ksoneda\\Documents\\PSoC Creator\\Senior"
+ 285      73657273 
+ 285      5C6B736F 
+ 285      6E656461 
+ 285      5C446F63 
+ 286 008b 20446573 		.ascii	" Design\\AQM Firmware BLE\\AQM Firmware BLE v1.cyds"
+ 286      69676E5C 
+ 286      41514D20 
+ 286      4669726D 
+ 286      77617265 
+ 287 00bc 6E00     		.ascii	"n\000"
+ 288              	.LASF1:
+ 289 00be 756E7369 		.ascii	"unsigned char\000"
+ 289      676E6564 
+ 289      20636861 
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccmTO5O7.s 			page 8
+
+
+ 289      7200
+ 290              	.LASF11:
+ 291 00cc 63686172 		.ascii	"char\000"
+ 291      00
+ 292              	.LASF4:
+ 293 00d1 6C6F6E67 		.ascii	"long int\000"
+ 293      20696E74 
+ 293      00
+ 294              	.LASF10:
+ 295 00da 646F7562 		.ascii	"double\000"
+ 295      6C6500
+ 296              	.LASF15:
+ 297 00e1 474E5520 		.ascii	"GNU C 4.8.4 20140526 (release) [ARM/embedded-4_8-br"
+ 297      4320342E 
+ 297      382E3420 
+ 297      32303134 
+ 297      30353236 
+ 298 0114 616E6368 		.ascii	"anch revision 211358] -mcpu=cortex-m0 -mthumb -g -O"
+ 298      20726576 
+ 298      6973696F 
+ 298      6E203231 
+ 298      31333538 
+ 299 0147 30202D66 		.ascii	"0 -ffunction-sections\000"
+ 299      66756E63 
+ 299      74696F6E 
+ 299      2D736563 
+ 299      74696F6E 
+ 300              	.LASF3:
+ 301 015d 73686F72 		.ascii	"short unsigned int\000"
+ 301      7420756E 
+ 301      7369676E 
+ 301      65642069 
+ 301      6E7400
+ 302              	.LASF0:
+ 303 0170 7369676E 		.ascii	"signed char\000"
+ 303      65642063 
+ 303      68617200 
+ 304              	.LASF9:
+ 305 017c 666C6F61 		.ascii	"float\000"
+ 305      7400
+ 306              	.LASF2:
+ 307 0182 73686F72 		.ascii	"short int\000"
+ 307      7420696E 
+ 307      7400
+ 308              	.LASF13:
+ 309 018c 48616E64 		.ascii	"HandleLowPowerMode\000"
+ 309      6C654C6F 
+ 309      77506F77 
+ 309      65724D6F 
+ 309      646500
+ 310              	.LASF12:
+ 311 019f 73697A65 		.ascii	"sizetype\000"
+ 311      74797065 
+ 311      00
+ 312              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 4.8.4 20140526 (release) [ARM/embedded-4_8-br

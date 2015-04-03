@@ -1,0 +1,1112 @@
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccBc9FWe.s 			page 1
+
+
+   1              		.cpu cortex-m0
+   2              		.fpu softvfp
+   3              		.eabi_attribute 20, 1
+   4              		.eabi_attribute 21, 1
+   5              		.eabi_attribute 23, 3
+   6              		.eabi_attribute 24, 1
+   7              		.eabi_attribute 25, 1
+   8              		.eabi_attribute 26, 1
+   9              		.eabi_attribute 30, 6
+  10              		.eabi_attribute 34, 0
+  11              		.eabi_attribute 18, 4
+  12              		.code	16
+  13              		.file	"Si7020.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.global	__aeabi_i2f
+  18              		.global	__aeabi_f2d
+  19              		.global	__aeabi_dmul
+  20              		.global	__aeabi_ddiv
+  21              		.global	__aeabi_dsub
+  22              		.global	__aeabi_d2f
+  23              		.section	.text.MeasureTemperature,"ax",%progbits
+  24              		.align	2
+  25              		.global	MeasureTemperature
+  26              		.code	16
+  27              		.thumb_func
+  28              		.type	MeasureTemperature, %function
+  29              	MeasureTemperature:
+  30              	.LFB35:
+  31              		.file 1 ".\\Si7020.c"
+   1:.\Si7020.c    **** /* ========================================
+   2:.\Si7020.c    ****  *
+   3:.\Si7020.c    ****  * Copyright YOUR COMPANY, THE YEAR
+   4:.\Si7020.c    ****  * All Rights Reserved
+   5:.\Si7020.c    ****  * UNPUBLISHED, LICENSED SOFTWARE.
+   6:.\Si7020.c    ****  *
+   7:.\Si7020.c    ****  * CONFIDENTIAL AND PROPRIETARY INFORMATION
+   8:.\Si7020.c    ****  * WHICH IS THE PROPERTY OF your company.
+   9:.\Si7020.c    ****  * Overview: Temperature and Humidity Measurement Code
+  10:.\Si7020.c    ****  * ========================================
+  11:.\Si7020.c    **** */
+  12:.\Si7020.c    **** 
+  13:.\Si7020.c    **** 
+  14:.\Si7020.c    **** #include "main.h"
+  15:.\Si7020.c    **** 
+  16:.\Si7020.c    **** #ifdef SI_7020_H
+  17:.\Si7020.c    **** float MeasureTemperature(void)
+  18:.\Si7020.c    **** {
+  32              		.loc 1 18 0
+  33              		.cfi_startproc
+  34 0000 90B5     		push	{r4, r7, lr}
+  35              		.cfi_def_cfa_offset 12
+  36              		.cfi_offset 4, -12
+  37              		.cfi_offset 7, -8
+  38              		.cfi_offset 14, -4
+  39 0002 89B0     		sub	sp, sp, #36
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccBc9FWe.s 			page 2
+
+
+  40              		.cfi_def_cfa_offset 48
+  41 0004 00AF     		add	r7, sp, #0
+  42              		.cfi_def_cfa_register 7
+  19:.\Si7020.c    **** 	 /*Values for read temp*/
+  20:.\Si7020.c    **** 	I2C_1_I2CMasterClearStatus();
+  43              		.loc 1 20 0
+  44 0006 FFF7FEFF 		bl	I2C_1_I2CMasterClearStatus
+  21:.\Si7020.c    ****     I2C_1_I2CMasterClearWriteBuf();
+  45              		.loc 1 21 0
+  46 000a FFF7FEFF 		bl	I2C_1_I2CMasterClearWriteBuf
+  22:.\Si7020.c    ****     I2C_1_I2CMasterClearReadBuf();
+  47              		.loc 1 22 0
+  48 000e FFF7FEFF 		bl	I2C_1_I2CMasterClearReadBuf
+  23:.\Si7020.c    ****     uint8 LSB = 0;
+  49              		.loc 1 23 0
+  50 0012 3B1C     		mov	r3, r7
+  51 0014 1F33     		add	r3, r3, #31
+  52 0016 0022     		mov	r2, #0
+  53 0018 1A70     		strb	r2, [r3]
+  24:.\Si7020.c    ****     uint8 MSB = 0;
+  54              		.loc 1 24 0
+  55 001a 3B1C     		mov	r3, r7
+  56 001c 1E33     		add	r3, r3, #30
+  57 001e 0022     		mov	r2, #0
+  58 0020 1A70     		strb	r2, [r3]
+  25:.\Si7020.c    ****     float T_Code = 0;
+  59              		.loc 1 25 0
+  60 0022 0023     		mov	r3, #0
+  61 0024 BB61     		str	r3, [r7, #24]
+  26:.\Si7020.c    ****     float temperature = 0;
+  62              		.loc 1 26 0
+  63 0026 0023     		mov	r3, #0
+  64 0028 7B61     		str	r3, [r7, #20]
+  27:.\Si7020.c    **** 	
+  28:.\Si7020.c    **** 	 /*I2C Commands for capturing temp*/
+  29:.\Si7020.c    **** //    uint8 Slave_Addr = 0x40;//for temp
+  30:.\Si7020.c    ****     uint8 Write_Buffer[1] = {0};
+  65              		.loc 1 30 0
+  66 002a 3B1D     		add	r3, r7, #4
+  67 002c 0022     		mov	r2, #0
+  68 002e 1A70     		strb	r2, [r3]
+  31:.\Si7020.c    ****     uint8 Measure_Cmd = 0xE3;//for temp
+  69              		.loc 1 31 0
+  70 0030 3B1C     		mov	r3, r7
+  71 0032 1333     		add	r3, r3, #19
+  72 0034 E322     		mov	r2, #227
+  73 0036 1A70     		strb	r2, [r3]
+  32:.\Si7020.c    **** 	
+  33:.\Si7020.c    ****     Write_Buffer[0] = Measure_Cmd;
+  74              		.loc 1 33 0
+  75 0038 3B1D     		add	r3, r7, #4
+  76 003a 3A1C     		mov	r2, r7
+  77 003c 1332     		add	r2, r2, #19
+  78 003e 1278     		ldrb	r2, [r2]
+  79 0040 1A70     		strb	r2, [r3]
+  34:.\Si7020.c    **** 	
+  35:.\Si7020.c    **** 	 /*Buffer for reading temp values*/
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccBc9FWe.s 			page 3
+
+
+  36:.\Si7020.c    ****     uint8 Read_Buf[2] = {0,0};//temp
+  80              		.loc 1 36 0
+  81 0042 3B1C     		mov	r3, r7
+  82 0044 0022     		mov	r2, #0
+  83 0046 1A70     		strb	r2, [r3]
+  84 0048 3B1C     		mov	r3, r7
+  85 004a 0022     		mov	r2, #0
+  86 004c 5A70     		strb	r2, [r3, #1]
+  37:.\Si7020.c    **** 	 /*Read and write values*/
+  38:.\Si7020.c    **** 
+  39:.\Si7020.c    **** 
+  40:.\Si7020.c    ****     uint32 error = I2C_1_I2CMasterWriteBuf(TH_SLAVE_ADDR, Write_Buffer, 1, I2C_1_I2C_MODE_NO_STOP);
+  87              		.loc 1 40 0
+  88 004e 3B1D     		add	r3, r7, #4
+  89 0050 4020     		mov	r0, #64
+  90 0052 191C     		mov	r1, r3
+  91 0054 0122     		mov	r2, #1
+  92 0056 0223     		mov	r3, #2
+  93 0058 FFF7FEFF 		bl	I2C_1_I2CMasterWriteBuf
+  94 005c 031C     		mov	r3, r0
+  95 005e FB60     		str	r3, [r7, #12]
+  41:.\Si7020.c    **** 
+  42:.\Si7020.c    **** 	while(0u==(I2C_1_I2CMasterStatus()&I2C_1_I2C_MSTR_ERR_LB_NAK))
+  96              		.loc 1 42 0
+  97 0060 C046     		mov	r8, r8
+  98              	.L2:
+  99              		.loc 1 42 0 is_stmt 0 discriminator 1
+ 100 0062 FFF7FEFF 		bl	I2C_1_I2CMasterStatus
+ 101 0066 021C     		mov	r2, r0
+ 102 0068 0223     		mov	r3, #2
+ 103 006a 1340     		and	r3, r2
+ 104 006c F9D0     		beq	.L2
+  43:.\Si7020.c    **** 	{
+  44:.\Si7020.c    **** 		//Add code to break loop if unsucessful
+  45:.\Si7020.c    **** 	}
+  46:.\Si7020.c    **** 	
+  47:.\Si7020.c    **** 	uint32 error2 = I2C_1_I2CMasterReadBuf(TH_SLAVE_ADDR, Read_Buf, 2, I2C_1_I2C_MODE_REPEAT_START);
+ 105              		.loc 1 47 0 is_stmt 1
+ 106 006e 3B1C     		mov	r3, r7
+ 107 0070 4020     		mov	r0, #64
+ 108 0072 191C     		mov	r1, r3
+ 109 0074 0222     		mov	r2, #2
+ 110 0076 0123     		mov	r3, #1
+ 111 0078 FFF7FEFF 		bl	I2C_1_I2CMasterReadBuf
+ 112 007c 031C     		mov	r3, r0
+ 113 007e BB60     		str	r3, [r7, #8]
+  48:.\Si7020.c    **** 	while(0u ==(I2C_1_I2CMasterStatus() & I2C_1_I2C_MSTAT_RD_CMPLT))
+ 114              		.loc 1 48 0
+ 115 0080 C046     		mov	r8, r8
+ 116              	.L3:
+ 117              		.loc 1 48 0 is_stmt 0 discriminator 1
+ 118 0082 FFF7FEFF 		bl	I2C_1_I2CMasterStatus
+ 119 0086 021C     		mov	r2, r0
+ 120 0088 0123     		mov	r3, #1
+ 121 008a 1340     		and	r3, r2
+ 122 008c F9D0     		beq	.L3
+  49:.\Si7020.c    **** 	{
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccBc9FWe.s 			page 4
+
+
+  50:.\Si7020.c    **** 		//Add code to break loop if unsucessful
+  51:.\Si7020.c    **** 	}
+  52:.\Si7020.c    **** 	
+  53:.\Si7020.c    **** 	LSB = Read_Buf[1];
+ 123              		.loc 1 53 0 is_stmt 1
+ 124 008e 3B1C     		mov	r3, r7
+ 125 0090 1F33     		add	r3, r3, #31
+ 126 0092 3A1C     		mov	r2, r7
+ 127 0094 5278     		ldrb	r2, [r2, #1]
+ 128 0096 1A70     		strb	r2, [r3]
+  54:.\Si7020.c    ****     MSB = Read_Buf[0];//temp
+ 129              		.loc 1 54 0
+ 130 0098 3B1C     		mov	r3, r7
+ 131 009a 1E33     		add	r3, r3, #30
+ 132 009c 3A1C     		mov	r2, r7
+ 133 009e 1278     		ldrb	r2, [r2]
+ 134 00a0 1A70     		strb	r2, [r3]
+  55:.\Si7020.c    ****     T_Code = MSB*256 + LSB;//LSB = Read_Buf[1]; MSB = Read_Buf[0];
+ 135              		.loc 1 55 0
+ 136 00a2 3B1C     		mov	r3, r7
+ 137 00a4 1E33     		add	r3, r3, #30
+ 138 00a6 1B78     		ldrb	r3, [r3]
+ 139 00a8 1A02     		lsl	r2, r3, #8
+ 140 00aa 3B1C     		mov	r3, r7
+ 141 00ac 1F33     		add	r3, r3, #31
+ 142 00ae 1B78     		ldrb	r3, [r3]
+ 143 00b0 D318     		add	r3, r2, r3
+ 144 00b2 181C     		mov	r0, r3
+ 145 00b4 FFF7FEFF 		bl	__aeabi_i2f
+ 146 00b8 031C     		add	r3, r0, #0
+ 147 00ba BB61     		str	r3, [r7, #24]
+  56:.\Si7020.c    ****     temperature = (((175.72*T_Code)/65536)-46.85);
+ 148              		.loc 1 56 0
+ 149 00bc B869     		ldr	r0, [r7, #24]
+ 150 00be FFF7FEFF 		bl	__aeabi_f2d
+ 151 00c2 031C     		mov	r3, r0
+ 152 00c4 0C1C     		mov	r4, r1
+ 153 00c6 181C     		mov	r0, r3
+ 154 00c8 211C     		mov	r1, r4
+ 155 00ca 124B     		ldr	r3, .L5+4
+ 156 00cc 104A     		ldr	r2, .L5
+ 157 00ce FFF7FEFF 		bl	__aeabi_dmul
+ 158 00d2 031C     		mov	r3, r0
+ 159 00d4 0C1C     		mov	r4, r1
+ 160 00d6 181C     		mov	r0, r3
+ 161 00d8 211C     		mov	r1, r4
+ 162 00da 0F4A     		ldr	r2, .L5+8
+ 163 00dc 0F4B     		ldr	r3, .L5+12
+ 164 00de FFF7FEFF 		bl	__aeabi_ddiv
+ 165 00e2 031C     		mov	r3, r0
+ 166 00e4 0C1C     		mov	r4, r1
+ 167 00e6 181C     		mov	r0, r3
+ 168 00e8 211C     		mov	r1, r4
+ 169 00ea 0D4A     		ldr	r2, .L5+16
+ 170 00ec 0D4B     		ldr	r3, .L5+20
+ 171 00ee FFF7FEFF 		bl	__aeabi_dsub
+ 172 00f2 031C     		mov	r3, r0
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccBc9FWe.s 			page 5
+
+
+ 173 00f4 0C1C     		mov	r4, r1
+ 174 00f6 181C     		mov	r0, r3
+ 175 00f8 211C     		mov	r1, r4
+ 176 00fa FFF7FEFF 		bl	__aeabi_d2f
+ 177 00fe 031C     		add	r3, r0, #0
+ 178 0100 7B61     		str	r3, [r7, #20]
+  57:.\Si7020.c    **** 	
+  58:.\Si7020.c    **** 	return temperature;
+ 179              		.loc 1 58 0
+ 180 0102 7B69     		ldr	r3, [r7, #20]
+  59:.\Si7020.c    **** }
+ 181              		.loc 1 59 0
+ 182 0104 181C     		add	r0, r3, #0
+ 183 0106 BD46     		mov	sp, r7
+ 184 0108 09B0     		add	sp, sp, #36
+ 185              		@ sp needed
+ 186 010a 90BD     		pop	{r4, r7, pc}
+ 187              	.L6:
+ 188 010c C046C046 		.align	3
+ 189              	.L5:
+ 190 0110 D7A3703D 		.word	1030792151
+ 191 0114 0AF76540 		.word	1080424202
+ 192 0118 00000000 		.word	0
+ 193 011c 0000F040 		.word	1089470464
+ 194 0120 CDCCCCCC 		.word	-858993459
+ 195 0124 CC6C4740 		.word	1078422732
+ 196              		.cfi_endproc
+ 197              	.LFE35:
+ 198              		.size	MeasureTemperature, .-MeasureTemperature
+ 199              		.global	__aeabi_fmul
+ 200              		.global	__aeabi_fdiv
+ 201              		.global	__aeabi_fsub
+ 202              		.section	.text.MeasureHumidity,"ax",%progbits
+ 203              		.align	2
+ 204              		.global	MeasureHumidity
+ 205              		.code	16
+ 206              		.thumb_func
+ 207              		.type	MeasureHumidity, %function
+ 208              	MeasureHumidity:
+ 209              	.LFB36:
+  60:.\Si7020.c    **** 
+  61:.\Si7020.c    **** float MeasureHumidity(void)
+  62:.\Si7020.c    **** {
+ 210              		.loc 1 62 0
+ 211              		.cfi_startproc
+ 212 0000 80B5     		push	{r7, lr}
+ 213              		.cfi_def_cfa_offset 8
+ 214              		.cfi_offset 7, -8
+ 215              		.cfi_offset 14, -4
+ 216 0002 88B0     		sub	sp, sp, #32
+ 217              		.cfi_def_cfa_offset 40
+ 218 0004 00AF     		add	r7, sp, #0
+ 219              		.cfi_def_cfa_register 7
+  63:.\Si7020.c    ****     I2C_1_I2CMasterClearStatus();
+ 220              		.loc 1 63 0
+ 221 0006 FFF7FEFF 		bl	I2C_1_I2CMasterClearStatus
+  64:.\Si7020.c    **** 	I2C_1_I2CMasterClearWriteBuf();
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccBc9FWe.s 			page 6
+
+
+ 222              		.loc 1 64 0
+ 223 000a FFF7FEFF 		bl	I2C_1_I2CMasterClearWriteBuf
+  65:.\Si7020.c    ****     I2C_1_I2CMasterClearReadBuf(); 
+ 224              		.loc 1 65 0
+ 225 000e FFF7FEFF 		bl	I2C_1_I2CMasterClearReadBuf
+  66:.\Si7020.c    ****     
+  67:.\Si7020.c    ****     /*Values for read humidity*/
+  68:.\Si7020.c    ****     uint8 LSB = 0u;
+ 226              		.loc 1 68 0
+ 227 0012 3B1C     		mov	r3, r7
+ 228 0014 1F33     		add	r3, r3, #31
+ 229 0016 0022     		mov	r2, #0
+ 230 0018 1A70     		strb	r2, [r3]
+  69:.\Si7020.c    ****     uint8 MSB = 0u;
+ 231              		.loc 1 69 0
+ 232 001a 3B1C     		mov	r3, r7
+ 233 001c 1E33     		add	r3, r3, #30
+ 234 001e 0022     		mov	r2, #0
+ 235 0020 1A70     		strb	r2, [r3]
+  70:.\Si7020.c    ****     float RH_Code = 0;
+ 236              		.loc 1 70 0
+ 237 0022 0023     		mov	r3, #0
+ 238 0024 BB61     		str	r3, [r7, #24]
+  71:.\Si7020.c    ****     float humidity = 0;
+ 239              		.loc 1 71 0
+ 240 0026 0023     		mov	r3, #0
+ 241 0028 7B61     		str	r3, [r7, #20]
+  72:.\Si7020.c    **** 	
+  73:.\Si7020.c    **** 	 /*I2C Commands for capturing humidity*/
+  74:.\Si7020.c    **** //    uint8 Slave_Addr = 0x40;//for humid
+  75:.\Si7020.c    **** 
+  76:.\Si7020.c    ****     uint8 Write_Buffer[1] = {0};
+ 242              		.loc 1 76 0
+ 243 002a 3B1D     		add	r3, r7, #4
+ 244 002c 0022     		mov	r2, #0
+ 245 002e 1A70     		strb	r2, [r3]
+  77:.\Si7020.c    ****     uint8 Measure_Cmd = 0xE5;//for humid
+ 246              		.loc 1 77 0
+ 247 0030 3B1C     		mov	r3, r7
+ 248 0032 1333     		add	r3, r3, #19
+ 249 0034 E522     		mov	r2, #229
+ 250 0036 1A70     		strb	r2, [r3]
+  78:.\Si7020.c    **** 
+  79:.\Si7020.c    ****     Write_Buffer[0] = Measure_Cmd;
+ 251              		.loc 1 79 0
+ 252 0038 3B1D     		add	r3, r7, #4
+ 253 003a 3A1C     		mov	r2, r7
+ 254 003c 1332     		add	r2, r2, #19
+ 255 003e 1278     		ldrb	r2, [r2]
+ 256 0040 1A70     		strb	r2, [r3]
+  80:.\Si7020.c    **** 	
+  81:.\Si7020.c    **** 	 /*Buffer for reading humidity values*/
+  82:.\Si7020.c    ****     uint8 Read_Buf[2] = {0,0};
+ 257              		.loc 1 82 0
+ 258 0042 3B1C     		mov	r3, r7
+ 259 0044 0022     		mov	r2, #0
+ 260 0046 1A70     		strb	r2, [r3]
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccBc9FWe.s 			page 7
+
+
+ 261 0048 3B1C     		mov	r3, r7
+ 262 004a 0022     		mov	r2, #0
+ 263 004c 5A70     		strb	r2, [r3, #1]
+  83:.\Si7020.c    **** 
+  84:.\Si7020.c    ****     uint32 error = I2C_1_I2CMasterWriteBuf(TH_SLAVE_ADDR, Write_Buffer, 1, I2C_1_I2C_MODE_NO_STOP);
+ 264              		.loc 1 84 0
+ 265 004e 3B1D     		add	r3, r7, #4
+ 266 0050 4020     		mov	r0, #64
+ 267 0052 191C     		mov	r1, r3
+ 268 0054 0122     		mov	r2, #1
+ 269 0056 0223     		mov	r3, #2
+ 270 0058 FFF7FEFF 		bl	I2C_1_I2CMasterWriteBuf
+ 271 005c 031C     		mov	r3, r0
+ 272 005e FB60     		str	r3, [r7, #12]
+  85:.\Si7020.c    **** 	while(0u==(I2C_1_I2CMasterStatus()&I2C_1_I2C_MSTR_ERR_LB_NAK))
+ 273              		.loc 1 85 0
+ 274 0060 C046     		mov	r8, r8
+ 275              	.L8:
+ 276              		.loc 1 85 0 is_stmt 0 discriminator 1
+ 277 0062 FFF7FEFF 		bl	I2C_1_I2CMasterStatus
+ 278 0066 021C     		mov	r2, r0
+ 279 0068 0223     		mov	r3, #2
+ 280 006a 1340     		and	r3, r2
+ 281 006c F9D0     		beq	.L8
+  86:.\Si7020.c    **** 	{
+  87:.\Si7020.c    **** 		//Add code to break loop if unsucessful
+  88:.\Si7020.c    **** 	}
+  89:.\Si7020.c    **** 
+  90:.\Si7020.c    ****     uint32 error2 = I2C_1_I2CMasterReadBuf(TH_SLAVE_ADDR, Read_Buf, 2, I2C_1_I2C_MODE_REPEAT_START)
+ 282              		.loc 1 90 0 is_stmt 1
+ 283 006e 3B1C     		mov	r3, r7
+ 284 0070 4020     		mov	r0, #64
+ 285 0072 191C     		mov	r1, r3
+ 286 0074 0222     		mov	r2, #2
+ 287 0076 0123     		mov	r3, #1
+ 288 0078 FFF7FEFF 		bl	I2C_1_I2CMasterReadBuf
+ 289 007c 031C     		mov	r3, r0
+ 290 007e BB60     		str	r3, [r7, #8]
+  91:.\Si7020.c    **** 	while(0u ==(I2C_1_I2CMasterStatus() & I2C_1_I2C_MSTAT_RD_CMPLT))
+ 291              		.loc 1 91 0
+ 292 0080 C046     		mov	r8, r8
+ 293              	.L9:
+ 294              		.loc 1 91 0 is_stmt 0 discriminator 1
+ 295 0082 FFF7FEFF 		bl	I2C_1_I2CMasterStatus
+ 296 0086 021C     		mov	r2, r0
+ 297 0088 0123     		mov	r3, #1
+ 298 008a 1340     		and	r3, r2
+ 299 008c F9D0     		beq	.L9
+  92:.\Si7020.c    **** 	{
+  93:.\Si7020.c    **** 		//Add code to break loop if unsucessful
+  94:.\Si7020.c    **** 	}
+  95:.\Si7020.c    **** 	
+  96:.\Si7020.c    **** 	LSB = Read_Buf[1];
+ 300              		.loc 1 96 0 is_stmt 1
+ 301 008e 3B1C     		mov	r3, r7
+ 302 0090 1F33     		add	r3, r3, #31
+ 303 0092 3A1C     		mov	r2, r7
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccBc9FWe.s 			page 8
+
+
+ 304 0094 5278     		ldrb	r2, [r2, #1]
+ 305 0096 1A70     		strb	r2, [r3]
+  97:.\Si7020.c    ****     MSB = Read_Buf[0];
+ 306              		.loc 1 97 0
+ 307 0098 3B1C     		mov	r3, r7
+ 308 009a 1E33     		add	r3, r3, #30
+ 309 009c 3A1C     		mov	r2, r7
+ 310 009e 1278     		ldrb	r2, [r2]
+ 311 00a0 1A70     		strb	r2, [r3]
+  98:.\Si7020.c    ****     RH_Code = MSB*256 + LSB;
+ 312              		.loc 1 98 0
+ 313 00a2 3B1C     		mov	r3, r7
+ 314 00a4 1E33     		add	r3, r3, #30
+ 315 00a6 1B78     		ldrb	r3, [r3]
+ 316 00a8 1A02     		lsl	r2, r3, #8
+ 317 00aa 3B1C     		mov	r3, r7
+ 318 00ac 1F33     		add	r3, r3, #31
+ 319 00ae 1B78     		ldrb	r3, [r3]
+ 320 00b0 D318     		add	r3, r2, r3
+ 321 00b2 181C     		mov	r0, r3
+ 322 00b4 FFF7FEFF 		bl	__aeabi_i2f
+ 323 00b8 031C     		add	r3, r0, #0
+ 324 00ba BB61     		str	r3, [r7, #24]
+  99:.\Si7020.c    ****     humidity = (((125*RH_Code)/65536)-6);
+ 325              		.loc 1 99 0
+ 326 00bc B869     		ldr	r0, [r7, #24]
+ 327 00be 0A49     		ldr	r1, .L11
+ 328 00c0 FFF7FEFF 		bl	__aeabi_fmul
+ 329 00c4 031C     		add	r3, r0, #0
+ 330 00c6 181C     		add	r0, r3, #0
+ 331 00c8 8F21     		mov	r1, #143
+ 332 00ca C905     		lsl	r1, r1, #23
+ 333 00cc FFF7FEFF 		bl	__aeabi_fdiv
+ 334 00d0 031C     		add	r3, r0, #0
+ 335 00d2 181C     		add	r0, r3, #0
+ 336 00d4 0549     		ldr	r1, .L11+4
+ 337 00d6 FFF7FEFF 		bl	__aeabi_fsub
+ 338 00da 031C     		add	r3, r0, #0
+ 339 00dc 7B61     		str	r3, [r7, #20]
+ 100:.\Si7020.c    **** 
+ 101:.\Si7020.c    **** 	return humidity;
+ 340              		.loc 1 101 0
+ 341 00de 7B69     		ldr	r3, [r7, #20]
+ 102:.\Si7020.c    **** }
+ 342              		.loc 1 102 0
+ 343 00e0 181C     		add	r0, r3, #0
+ 344 00e2 BD46     		mov	sp, r7
+ 345 00e4 08B0     		add	sp, sp, #32
+ 346              		@ sp needed
+ 347 00e6 80BD     		pop	{r7, pc}
+ 348              	.L12:
+ 349              		.align	2
+ 350              	.L11:
+ 351 00e8 0000FA42 		.word	1123680256
+ 352 00ec 0000C040 		.word	1086324736
+ 353              		.cfi_endproc
+ 354              	.LFE36:
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccBc9FWe.s 			page 9
+
+
+ 355              		.size	MeasureHumidity, .-MeasureHumidity
+ 356              		.text
+ 357              	.Letext0:
+ 358              		.file 2 ".\\Generated_Source\\PSoC4/cytypes.h"
+ 359              		.section	.debug_info,"",%progbits
+ 360              	.Ldebug_info0:
+ 361 0000 F1010000 		.4byte	0x1f1
+ 362 0004 0400     		.2byte	0x4
+ 363 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 364 000a 04       		.byte	0x4
+ 365 000b 01       		.uleb128 0x1
+ 366 000c 63000000 		.4byte	.LASF25
+ 367 0010 01       		.byte	0x1
+ 368 0011 83010000 		.4byte	.LASF26
+ 369 0015 97010000 		.4byte	.LASF27
+ 370 0019 00000000 		.4byte	.Ldebug_ranges0+0
+ 371 001d 00000000 		.4byte	0
+ 372 0021 00000000 		.4byte	.Ldebug_line0
+ 373 0025 02       		.uleb128 0x2
+ 374 0026 01       		.byte	0x1
+ 375 0027 06       		.byte	0x6
+ 376 0028 F8010000 		.4byte	.LASF0
+ 377 002c 02       		.uleb128 0x2
+ 378 002d 01       		.byte	0x1
+ 379 002e 08       		.byte	0x8
+ 380 002f F6000000 		.4byte	.LASF1
+ 381 0033 02       		.uleb128 0x2
+ 382 0034 02       		.byte	0x2
+ 383 0035 05       		.byte	0x5
+ 384 0036 23010000 		.4byte	.LASF2
+ 385 003a 02       		.uleb128 0x2
+ 386 003b 02       		.byte	0x2
+ 387 003c 07       		.byte	0x7
+ 388 003d 2F000000 		.4byte	.LASF3
+ 389 0041 02       		.uleb128 0x2
+ 390 0042 04       		.byte	0x4
+ 391 0043 05       		.byte	0x5
+ 392 0044 8E010000 		.4byte	.LASF4
+ 393 0048 02       		.uleb128 0x2
+ 394 0049 04       		.byte	0x4
+ 395 004a 07       		.byte	0x7
+ 396 004b 04010000 		.4byte	.LASF5
+ 397 004f 02       		.uleb128 0x2
+ 398 0050 08       		.byte	0x8
+ 399 0051 05       		.byte	0x5
+ 400 0052 69010000 		.4byte	.LASF6
+ 401 0056 02       		.uleb128 0x2
+ 402 0057 08       		.byte	0x8
+ 403 0058 07       		.byte	0x7
+ 404 0059 DF000000 		.4byte	.LASF7
+ 405 005d 03       		.uleb128 0x3
+ 406 005e 04       		.byte	0x4
+ 407 005f 05       		.byte	0x5
+ 408 0060 696E7400 		.ascii	"int\000"
+ 409 0064 02       		.uleb128 0x2
+ 410 0065 04       		.byte	0x4
+ 411 0066 07       		.byte	0x7
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccBc9FWe.s 			page 10
+
+
+ 412 0067 49000000 		.4byte	.LASF8
+ 413 006b 04       		.uleb128 0x4
+ 414 006c 16010000 		.4byte	.LASF9
+ 415 0070 02       		.byte	0x2
+ 416 0071 A1       		.byte	0xa1
+ 417 0072 2C000000 		.4byte	0x2c
+ 418 0076 04       		.uleb128 0x4
+ 419 0077 1C010000 		.4byte	.LASF10
+ 420 007b 02       		.byte	0x2
+ 421 007c A2       		.byte	0xa2
+ 422 007d 3A000000 		.4byte	0x3a
+ 423 0081 04       		.uleb128 0x4
+ 424 0082 3D010000 		.4byte	.LASF11
+ 425 0086 02       		.byte	0x2
+ 426 0087 A3       		.byte	0xa3
+ 427 0088 48000000 		.4byte	0x48
+ 428 008c 02       		.uleb128 0x2
+ 429 008d 04       		.byte	0x4
+ 430 008e 04       		.byte	0x4
+ 431 008f 5D000000 		.4byte	.LASF12
+ 432 0093 02       		.uleb128 0x2
+ 433 0094 08       		.byte	0x8
+ 434 0095 04       		.byte	0x4
+ 435 0096 56000000 		.4byte	.LASF13
+ 436 009a 02       		.uleb128 0x2
+ 437 009b 01       		.byte	0x1
+ 438 009c 08       		.byte	0x8
+ 439 009d 4D010000 		.4byte	.LASF14
+ 440 00a1 02       		.uleb128 0x2
+ 441 00a2 04       		.byte	0x4
+ 442 00a3 07       		.byte	0x7
+ 443 00a4 5A010000 		.4byte	.LASF15
+ 444 00a8 05       		.uleb128 0x5
+ 445 00a9 0C000000 		.4byte	.LASF28
+ 446 00ad 01       		.byte	0x1
+ 447 00ae 11       		.byte	0x11
+ 448 00af 8C000000 		.4byte	0x8c
+ 449 00b3 00000000 		.4byte	.LFB35
+ 450 00b7 28010000 		.4byte	.LFE35-.LFB35
+ 451 00bb 01       		.uleb128 0x1
+ 452 00bc 9C       		.byte	0x9c
+ 453 00bd 40010000 		.4byte	0x140
+ 454 00c1 06       		.uleb128 0x6
+ 455 00c2 4C534200 		.ascii	"LSB\000"
+ 456 00c6 01       		.byte	0x1
+ 457 00c7 17       		.byte	0x17
+ 458 00c8 6B000000 		.4byte	0x6b
+ 459 00cc 02       		.uleb128 0x2
+ 460 00cd 91       		.byte	0x91
+ 461 00ce 6F       		.sleb128 -17
+ 462 00cf 06       		.uleb128 0x6
+ 463 00d0 4D534200 		.ascii	"MSB\000"
+ 464 00d4 01       		.byte	0x1
+ 465 00d5 18       		.byte	0x18
+ 466 00d6 6B000000 		.4byte	0x6b
+ 467 00da 02       		.uleb128 0x2
+ 468 00db 91       		.byte	0x91
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccBc9FWe.s 			page 11
+
+
+ 469 00dc 6E       		.sleb128 -18
+ 470 00dd 07       		.uleb128 0x7
+ 471 00de 42000000 		.4byte	.LASF16
+ 472 00e2 01       		.byte	0x1
+ 473 00e3 19       		.byte	0x19
+ 474 00e4 8C000000 		.4byte	0x8c
+ 475 00e8 02       		.uleb128 0x2
+ 476 00e9 91       		.byte	0x91
+ 477 00ea 68       		.sleb128 -24
+ 478 00eb 07       		.uleb128 0x7
+ 479 00ec 77010000 		.4byte	.LASF17
+ 480 00f0 01       		.byte	0x1
+ 481 00f1 1A       		.byte	0x1a
+ 482 00f2 8C000000 		.4byte	0x8c
+ 483 00f6 02       		.uleb128 0x2
+ 484 00f7 91       		.byte	0x91
+ 485 00f8 64       		.sleb128 -28
+ 486 00f9 07       		.uleb128 0x7
+ 487 00fa 04020000 		.4byte	.LASF18
+ 488 00fe 01       		.byte	0x1
+ 489 00ff 1E       		.byte	0x1e
+ 490 0100 40010000 		.4byte	0x140
+ 491 0104 02       		.uleb128 0x2
+ 492 0105 91       		.byte	0x91
+ 493 0106 54       		.sleb128 -44
+ 494 0107 07       		.uleb128 0x7
+ 495 0108 00000000 		.4byte	.LASF19
+ 496 010c 01       		.byte	0x1
+ 497 010d 1F       		.byte	0x1f
+ 498 010e 6B000000 		.4byte	0x6b
+ 499 0112 02       		.uleb128 0x2
+ 500 0113 91       		.byte	0x91
+ 501 0114 63       		.sleb128 -29
+ 502 0115 07       		.uleb128 0x7
+ 503 0116 44010000 		.4byte	.LASF20
+ 504 011a 01       		.byte	0x1
+ 505 011b 24       		.byte	0x24
+ 506 011c 50010000 		.4byte	0x150
+ 507 0120 02       		.uleb128 0x2
+ 508 0121 91       		.byte	0x91
+ 509 0122 50       		.sleb128 -48
+ 510 0123 07       		.uleb128 0x7
+ 511 0124 63010000 		.4byte	.LASF21
+ 512 0128 01       		.byte	0x1
+ 513 0129 28       		.byte	0x28
+ 514 012a 81000000 		.4byte	0x81
+ 515 012e 02       		.uleb128 0x2
+ 516 012f 91       		.byte	0x91
+ 517 0130 5C       		.sleb128 -36
+ 518 0131 07       		.uleb128 0x7
+ 519 0132 1F000000 		.4byte	.LASF22
+ 520 0136 01       		.byte	0x1
+ 521 0137 2F       		.byte	0x2f
+ 522 0138 81000000 		.4byte	0x81
+ 523 013c 02       		.uleb128 0x2
+ 524 013d 91       		.byte	0x91
+ 525 013e 58       		.sleb128 -40
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccBc9FWe.s 			page 12
+
+
+ 526 013f 00       		.byte	0
+ 527 0140 08       		.uleb128 0x8
+ 528 0141 6B000000 		.4byte	0x6b
+ 529 0145 50010000 		.4byte	0x150
+ 530 0149 09       		.uleb128 0x9
+ 531 014a A1000000 		.4byte	0xa1
+ 532 014e 00       		.byte	0
+ 533 014f 00       		.byte	0
+ 534 0150 08       		.uleb128 0x8
+ 535 0151 6B000000 		.4byte	0x6b
+ 536 0155 60010000 		.4byte	0x160
+ 537 0159 09       		.uleb128 0x9
+ 538 015a A1000000 		.4byte	0xa1
+ 539 015e 01       		.byte	0x1
+ 540 015f 00       		.byte	0
+ 541 0160 0A       		.uleb128 0xa
+ 542 0161 2D010000 		.4byte	.LASF29
+ 543 0165 01       		.byte	0x1
+ 544 0166 3D       		.byte	0x3d
+ 545 0167 8C000000 		.4byte	0x8c
+ 546 016b 00000000 		.4byte	.LFB36
+ 547 016f F0000000 		.4byte	.LFE36-.LFB36
+ 548 0173 01       		.uleb128 0x1
+ 549 0174 9C       		.byte	0x9c
+ 550 0175 06       		.uleb128 0x6
+ 551 0176 4C534200 		.ascii	"LSB\000"
+ 552 017a 01       		.byte	0x1
+ 553 017b 44       		.byte	0x44
+ 554 017c 6B000000 		.4byte	0x6b
+ 555 0180 02       		.uleb128 0x2
+ 556 0181 91       		.byte	0x91
+ 557 0182 77       		.sleb128 -9
+ 558 0183 06       		.uleb128 0x6
+ 559 0184 4D534200 		.ascii	"MSB\000"
+ 560 0188 01       		.byte	0x1
+ 561 0189 45       		.byte	0x45
+ 562 018a 6B000000 		.4byte	0x6b
+ 563 018e 02       		.uleb128 0x2
+ 564 018f 91       		.byte	0x91
+ 565 0190 76       		.sleb128 -10
+ 566 0191 07       		.uleb128 0x7
+ 567 0192 52010000 		.4byte	.LASF23
+ 568 0196 01       		.byte	0x1
+ 569 0197 46       		.byte	0x46
+ 570 0198 8C000000 		.4byte	0x8c
+ 571 019c 02       		.uleb128 0x2
+ 572 019d 91       		.byte	0x91
+ 573 019e 70       		.sleb128 -16
+ 574 019f 07       		.uleb128 0x7
+ 575 01a0 26000000 		.4byte	.LASF24
+ 576 01a4 01       		.byte	0x1
+ 577 01a5 47       		.byte	0x47
+ 578 01a6 8C000000 		.4byte	0x8c
+ 579 01aa 02       		.uleb128 0x2
+ 580 01ab 91       		.byte	0x91
+ 581 01ac 6C       		.sleb128 -20
+ 582 01ad 07       		.uleb128 0x7
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccBc9FWe.s 			page 13
+
+
+ 583 01ae 04020000 		.4byte	.LASF18
+ 584 01b2 01       		.byte	0x1
+ 585 01b3 4C       		.byte	0x4c
+ 586 01b4 40010000 		.4byte	0x140
+ 587 01b8 02       		.uleb128 0x2
+ 588 01b9 91       		.byte	0x91
+ 589 01ba 5C       		.sleb128 -36
+ 590 01bb 07       		.uleb128 0x7
+ 591 01bc 00000000 		.4byte	.LASF19
+ 592 01c0 01       		.byte	0x1
+ 593 01c1 4D       		.byte	0x4d
+ 594 01c2 6B000000 		.4byte	0x6b
+ 595 01c6 02       		.uleb128 0x2
+ 596 01c7 91       		.byte	0x91
+ 597 01c8 6B       		.sleb128 -21
+ 598 01c9 07       		.uleb128 0x7
+ 599 01ca 44010000 		.4byte	.LASF20
+ 600 01ce 01       		.byte	0x1
+ 601 01cf 52       		.byte	0x52
+ 602 01d0 50010000 		.4byte	0x150
+ 603 01d4 02       		.uleb128 0x2
+ 604 01d5 91       		.byte	0x91
+ 605 01d6 58       		.sleb128 -40
+ 606 01d7 07       		.uleb128 0x7
+ 607 01d8 63010000 		.4byte	.LASF21
+ 608 01dc 01       		.byte	0x1
+ 609 01dd 54       		.byte	0x54
+ 610 01de 81000000 		.4byte	0x81
+ 611 01e2 02       		.uleb128 0x2
+ 612 01e3 91       		.byte	0x91
+ 613 01e4 64       		.sleb128 -28
+ 614 01e5 07       		.uleb128 0x7
+ 615 01e6 1F000000 		.4byte	.LASF22
+ 616 01ea 01       		.byte	0x1
+ 617 01eb 5A       		.byte	0x5a
+ 618 01ec 81000000 		.4byte	0x81
+ 619 01f0 02       		.uleb128 0x2
+ 620 01f1 91       		.byte	0x91
+ 621 01f2 60       		.sleb128 -32
+ 622 01f3 00       		.byte	0
+ 623 01f4 00       		.byte	0
+ 624              		.section	.debug_abbrev,"",%progbits
+ 625              	.Ldebug_abbrev0:
+ 626 0000 01       		.uleb128 0x1
+ 627 0001 11       		.uleb128 0x11
+ 628 0002 01       		.byte	0x1
+ 629 0003 25       		.uleb128 0x25
+ 630 0004 0E       		.uleb128 0xe
+ 631 0005 13       		.uleb128 0x13
+ 632 0006 0B       		.uleb128 0xb
+ 633 0007 03       		.uleb128 0x3
+ 634 0008 0E       		.uleb128 0xe
+ 635 0009 1B       		.uleb128 0x1b
+ 636 000a 0E       		.uleb128 0xe
+ 637 000b 55       		.uleb128 0x55
+ 638 000c 17       		.uleb128 0x17
+ 639 000d 11       		.uleb128 0x11
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccBc9FWe.s 			page 14
+
+
+ 640 000e 01       		.uleb128 0x1
+ 641 000f 10       		.uleb128 0x10
+ 642 0010 17       		.uleb128 0x17
+ 643 0011 00       		.byte	0
+ 644 0012 00       		.byte	0
+ 645 0013 02       		.uleb128 0x2
+ 646 0014 24       		.uleb128 0x24
+ 647 0015 00       		.byte	0
+ 648 0016 0B       		.uleb128 0xb
+ 649 0017 0B       		.uleb128 0xb
+ 650 0018 3E       		.uleb128 0x3e
+ 651 0019 0B       		.uleb128 0xb
+ 652 001a 03       		.uleb128 0x3
+ 653 001b 0E       		.uleb128 0xe
+ 654 001c 00       		.byte	0
+ 655 001d 00       		.byte	0
+ 656 001e 03       		.uleb128 0x3
+ 657 001f 24       		.uleb128 0x24
+ 658 0020 00       		.byte	0
+ 659 0021 0B       		.uleb128 0xb
+ 660 0022 0B       		.uleb128 0xb
+ 661 0023 3E       		.uleb128 0x3e
+ 662 0024 0B       		.uleb128 0xb
+ 663 0025 03       		.uleb128 0x3
+ 664 0026 08       		.uleb128 0x8
+ 665 0027 00       		.byte	0
+ 666 0028 00       		.byte	0
+ 667 0029 04       		.uleb128 0x4
+ 668 002a 16       		.uleb128 0x16
+ 669 002b 00       		.byte	0
+ 670 002c 03       		.uleb128 0x3
+ 671 002d 0E       		.uleb128 0xe
+ 672 002e 3A       		.uleb128 0x3a
+ 673 002f 0B       		.uleb128 0xb
+ 674 0030 3B       		.uleb128 0x3b
+ 675 0031 0B       		.uleb128 0xb
+ 676 0032 49       		.uleb128 0x49
+ 677 0033 13       		.uleb128 0x13
+ 678 0034 00       		.byte	0
+ 679 0035 00       		.byte	0
+ 680 0036 05       		.uleb128 0x5
+ 681 0037 2E       		.uleb128 0x2e
+ 682 0038 01       		.byte	0x1
+ 683 0039 3F       		.uleb128 0x3f
+ 684 003a 19       		.uleb128 0x19
+ 685 003b 03       		.uleb128 0x3
+ 686 003c 0E       		.uleb128 0xe
+ 687 003d 3A       		.uleb128 0x3a
+ 688 003e 0B       		.uleb128 0xb
+ 689 003f 3B       		.uleb128 0x3b
+ 690 0040 0B       		.uleb128 0xb
+ 691 0041 27       		.uleb128 0x27
+ 692 0042 19       		.uleb128 0x19
+ 693 0043 49       		.uleb128 0x49
+ 694 0044 13       		.uleb128 0x13
+ 695 0045 11       		.uleb128 0x11
+ 696 0046 01       		.uleb128 0x1
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccBc9FWe.s 			page 15
+
+
+ 697 0047 12       		.uleb128 0x12
+ 698 0048 06       		.uleb128 0x6
+ 699 0049 40       		.uleb128 0x40
+ 700 004a 18       		.uleb128 0x18
+ 701 004b 9642     		.uleb128 0x2116
+ 702 004d 19       		.uleb128 0x19
+ 703 004e 01       		.uleb128 0x1
+ 704 004f 13       		.uleb128 0x13
+ 705 0050 00       		.byte	0
+ 706 0051 00       		.byte	0
+ 707 0052 06       		.uleb128 0x6
+ 708 0053 34       		.uleb128 0x34
+ 709 0054 00       		.byte	0
+ 710 0055 03       		.uleb128 0x3
+ 711 0056 08       		.uleb128 0x8
+ 712 0057 3A       		.uleb128 0x3a
+ 713 0058 0B       		.uleb128 0xb
+ 714 0059 3B       		.uleb128 0x3b
+ 715 005a 0B       		.uleb128 0xb
+ 716 005b 49       		.uleb128 0x49
+ 717 005c 13       		.uleb128 0x13
+ 718 005d 02       		.uleb128 0x2
+ 719 005e 18       		.uleb128 0x18
+ 720 005f 00       		.byte	0
+ 721 0060 00       		.byte	0
+ 722 0061 07       		.uleb128 0x7
+ 723 0062 34       		.uleb128 0x34
+ 724 0063 00       		.byte	0
+ 725 0064 03       		.uleb128 0x3
+ 726 0065 0E       		.uleb128 0xe
+ 727 0066 3A       		.uleb128 0x3a
+ 728 0067 0B       		.uleb128 0xb
+ 729 0068 3B       		.uleb128 0x3b
+ 730 0069 0B       		.uleb128 0xb
+ 731 006a 49       		.uleb128 0x49
+ 732 006b 13       		.uleb128 0x13
+ 733 006c 02       		.uleb128 0x2
+ 734 006d 18       		.uleb128 0x18
+ 735 006e 00       		.byte	0
+ 736 006f 00       		.byte	0
+ 737 0070 08       		.uleb128 0x8
+ 738 0071 01       		.uleb128 0x1
+ 739 0072 01       		.byte	0x1
+ 740 0073 49       		.uleb128 0x49
+ 741 0074 13       		.uleb128 0x13
+ 742 0075 01       		.uleb128 0x1
+ 743 0076 13       		.uleb128 0x13
+ 744 0077 00       		.byte	0
+ 745 0078 00       		.byte	0
+ 746 0079 09       		.uleb128 0x9
+ 747 007a 21       		.uleb128 0x21
+ 748 007b 00       		.byte	0
+ 749 007c 49       		.uleb128 0x49
+ 750 007d 13       		.uleb128 0x13
+ 751 007e 2F       		.uleb128 0x2f
+ 752 007f 0B       		.uleb128 0xb
+ 753 0080 00       		.byte	0
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccBc9FWe.s 			page 16
+
+
+ 754 0081 00       		.byte	0
+ 755 0082 0A       		.uleb128 0xa
+ 756 0083 2E       		.uleb128 0x2e
+ 757 0084 01       		.byte	0x1
+ 758 0085 3F       		.uleb128 0x3f
+ 759 0086 19       		.uleb128 0x19
+ 760 0087 03       		.uleb128 0x3
+ 761 0088 0E       		.uleb128 0xe
+ 762 0089 3A       		.uleb128 0x3a
+ 763 008a 0B       		.uleb128 0xb
+ 764 008b 3B       		.uleb128 0x3b
+ 765 008c 0B       		.uleb128 0xb
+ 766 008d 27       		.uleb128 0x27
+ 767 008e 19       		.uleb128 0x19
+ 768 008f 49       		.uleb128 0x49
+ 769 0090 13       		.uleb128 0x13
+ 770 0091 11       		.uleb128 0x11
+ 771 0092 01       		.uleb128 0x1
+ 772 0093 12       		.uleb128 0x12
+ 773 0094 06       		.uleb128 0x6
+ 774 0095 40       		.uleb128 0x40
+ 775 0096 18       		.uleb128 0x18
+ 776 0097 9642     		.uleb128 0x2116
+ 777 0099 19       		.uleb128 0x19
+ 778 009a 00       		.byte	0
+ 779 009b 00       		.byte	0
+ 780 009c 00       		.byte	0
+ 781              		.section	.debug_aranges,"",%progbits
+ 782 0000 24000000 		.4byte	0x24
+ 783 0004 0200     		.2byte	0x2
+ 784 0006 00000000 		.4byte	.Ldebug_info0
+ 785 000a 04       		.byte	0x4
+ 786 000b 00       		.byte	0
+ 787 000c 0000     		.2byte	0
+ 788 000e 0000     		.2byte	0
+ 789 0010 00000000 		.4byte	.LFB35
+ 790 0014 28010000 		.4byte	.LFE35-.LFB35
+ 791 0018 00000000 		.4byte	.LFB36
+ 792 001c F0000000 		.4byte	.LFE36-.LFB36
+ 793 0020 00000000 		.4byte	0
+ 794 0024 00000000 		.4byte	0
+ 795              		.section	.debug_ranges,"",%progbits
+ 796              	.Ldebug_ranges0:
+ 797 0000 00000000 		.4byte	.LFB35
+ 798 0004 28010000 		.4byte	.LFE35
+ 799 0008 00000000 		.4byte	.LFB36
+ 800 000c F0000000 		.4byte	.LFE36
+ 801 0010 00000000 		.4byte	0
+ 802 0014 00000000 		.4byte	0
+ 803              		.section	.debug_line,"",%progbits
+ 804              	.Ldebug_line0:
+ 805 0000 B4000000 		.section	.debug_str,"MS",%progbits,1
+ 805      02004700 
+ 805      00000201 
+ 805      FB0E0D00 
+ 805      01010101 
+ 806              	.LASF19:
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccBc9FWe.s 			page 17
+
+
+ 807 0000 4D656173 		.ascii	"Measure_Cmd\000"
+ 807      7572655F 
+ 807      436D6400 
+ 808              	.LASF28:
+ 809 000c 4D656173 		.ascii	"MeasureTemperature\000"
+ 809      75726554 
+ 809      656D7065 
+ 809      72617475 
+ 809      726500
+ 810              	.LASF22:
+ 811 001f 6572726F 		.ascii	"error2\000"
+ 811      723200
+ 812              	.LASF24:
+ 813 0026 68756D69 		.ascii	"humidity\000"
+ 813      64697479 
+ 813      00
+ 814              	.LASF3:
+ 815 002f 73686F72 		.ascii	"short unsigned int\000"
+ 815      7420756E 
+ 815      7369676E 
+ 815      65642069 
+ 815      6E7400
+ 816              	.LASF16:
+ 817 0042 545F436F 		.ascii	"T_Code\000"
+ 817      646500
+ 818              	.LASF8:
+ 819 0049 756E7369 		.ascii	"unsigned int\000"
+ 819      676E6564 
+ 819      20696E74 
+ 819      00
+ 820              	.LASF13:
+ 821 0056 646F7562 		.ascii	"double\000"
+ 821      6C6500
+ 822              	.LASF12:
+ 823 005d 666C6F61 		.ascii	"float\000"
+ 823      7400
+ 824              	.LASF25:
+ 825 0063 474E5520 		.ascii	"GNU C 4.8.4 20140526 (release) [ARM/embedded-4_8-br"
+ 825      4320342E 
+ 825      382E3420 
+ 825      32303134 
+ 825      30353236 
+ 826 0096 616E6368 		.ascii	"anch revision 211358] -mcpu=cortex-m0 -mthumb -g -O"
+ 826      20726576 
+ 826      6973696F 
+ 826      6E203231 
+ 826      31333538 
+ 827 00c9 30202D66 		.ascii	"0 -ffunction-sections\000"
+ 827      66756E63 
+ 827      74696F6E 
+ 827      2D736563 
+ 827      74696F6E 
+ 828              	.LASF7:
+ 829 00df 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 829      206C6F6E 
+ 829      6720756E 
+ 829      7369676E 
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccBc9FWe.s 			page 18
+
+
+ 829      65642069 
+ 830              	.LASF1:
+ 831 00f6 756E7369 		.ascii	"unsigned char\000"
+ 831      676E6564 
+ 831      20636861 
+ 831      7200
+ 832              	.LASF5:
+ 833 0104 6C6F6E67 		.ascii	"long unsigned int\000"
+ 833      20756E73 
+ 833      69676E65 
+ 833      6420696E 
+ 833      7400
+ 834              	.LASF9:
+ 835 0116 75696E74 		.ascii	"uint8\000"
+ 835      3800
+ 836              	.LASF10:
+ 837 011c 75696E74 		.ascii	"uint16\000"
+ 837      313600
+ 838              	.LASF2:
+ 839 0123 73686F72 		.ascii	"short int\000"
+ 839      7420696E 
+ 839      7400
+ 840              	.LASF29:
+ 841 012d 4D656173 		.ascii	"MeasureHumidity\000"
+ 841      75726548 
+ 841      756D6964 
+ 841      69747900 
+ 842              	.LASF11:
+ 843 013d 75696E74 		.ascii	"uint32\000"
+ 843      333200
+ 844              	.LASF20:
+ 845 0144 52656164 		.ascii	"Read_Buf\000"
+ 845      5F427566 
+ 845      00
+ 846              	.LASF14:
+ 847 014d 63686172 		.ascii	"char\000"
+ 847      00
+ 848              	.LASF23:
+ 849 0152 52485F43 		.ascii	"RH_Code\000"
+ 849      6F646500 
+ 850              	.LASF15:
+ 851 015a 73697A65 		.ascii	"sizetype\000"
+ 851      74797065 
+ 851      00
+ 852              	.LASF21:
+ 853 0163 6572726F 		.ascii	"error\000"
+ 853      7200
+ 854              	.LASF6:
+ 855 0169 6C6F6E67 		.ascii	"long long int\000"
+ 855      206C6F6E 
+ 855      6720696E 
+ 855      7400
+ 856              	.LASF17:
+ 857 0177 74656D70 		.ascii	"temperature\000"
+ 857      65726174 
+ 857      75726500 
+ 858              	.LASF26:
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccBc9FWe.s 			page 19
+
+
+ 859 0183 2E5C5369 		.ascii	".\\Si7020.c\000"
+ 859      37303230 
+ 859      2E6300
+ 860              	.LASF4:
+ 861 018e 6C6F6E67 		.ascii	"long int\000"
+ 861      20696E74 
+ 861      00
+ 862              	.LASF27:
+ 863 0197 433A5C55 		.ascii	"C:\\Users\\ksoneda\\Documents\\PSoC Creator\\Senior"
+ 863      73657273 
+ 863      5C6B736F 
+ 863      6E656461 
+ 863      5C446F63 
+ 864 01c5 20446573 		.ascii	" Design\\AQM Firmware BLE\\AQM Firmware BLE v1.cyds"
+ 864      69676E5C 
+ 864      41514D20 
+ 864      4669726D 
+ 864      77617265 
+ 865 01f6 6E00     		.ascii	"n\000"
+ 866              	.LASF0:
+ 867 01f8 7369676E 		.ascii	"signed char\000"
+ 867      65642063 
+ 867      68617200 
+ 868              	.LASF18:
+ 869 0204 57726974 		.ascii	"Write_Buffer\000"
+ 869      655F4275 
+ 869      66666572 
+ 869      00
+ 870              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 4.8.4 20140526 (release) [ARM/embedded-4_8-br

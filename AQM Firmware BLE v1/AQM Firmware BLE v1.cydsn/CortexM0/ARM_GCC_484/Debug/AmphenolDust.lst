@@ -1,0 +1,1503 @@
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 1
+
+
+   1              		.cpu cortex-m0
+   2              		.fpu softvfp
+   3              		.eabi_attribute 20, 1
+   4              		.eabi_attribute 21, 1
+   5              		.eabi_attribute 23, 3
+   6              		.eabi_attribute 24, 1
+   7              		.eabi_attribute 25, 1
+   8              		.eabi_attribute 26, 1
+   9              		.eabi_attribute 30, 6
+  10              		.eabi_attribute 34, 0
+  11              		.eabi_attribute 18, 4
+  12              		.code	16
+  13              		.file	"AmphenolDust.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.global	SPdata
+  18              		.bss
+  19              		.align	2
+  20              		.type	SPdata, %object
+  21              		.size	SPdata, 4
+  22              	SPdata:
+  23 0000 00000000 		.space	4
+  24              		.global	LPdata
+  25              		.align	2
+  26              		.type	LPdata, %object
+  27              		.size	LPdata, 4
+  28              	LPdata:
+  29 0004 00000000 		.space	4
+  30              		.section	.text.DustSamplingCycle,"ax",%progbits
+  31              		.align	2
+  32              		.global	DustSamplingCycle
+  33              		.code	16
+  34              		.thumb_func
+  35              		.type	DustSamplingCycle, %function
+  36              	DustSamplingCycle:
+  37              	.LFB35:
+  38              		.file 1 ".\\AmphenolDust.c"
+   1:.\AmphenolDust.c **** /* ========================================
+   2:.\AmphenolDust.c ****  *
+   3:.\AmphenolDust.c ****  * Copyright YOUR COMPANY, THE YEAR
+   4:.\AmphenolDust.c ****  * All Rights Reserved
+   5:.\AmphenolDust.c ****  * UNPUBLISHED, LICENSED SOFTWARE.
+   6:.\AmphenolDust.c ****  *
+   7:.\AmphenolDust.c ****  * CONFIDENTIAL AND PROPRIETARY INFORMATION
+   8:.\AmphenolDust.c ****  * WHICH IS THE PROPERTY OF your company.
+   9:.\AmphenolDust.c ****  *
+  10:.\AmphenolDust.c ****  * by Keith Soneda
+  11:.\AmphenolDust.c ****  * UC Davis - EEC136AB - Firmware for Air Quality Monitor - PSOC 4 BLE revision - March 2015
+  12:.\AmphenolDust.c ****  * Overview: Read Cycle for sampling dust levels.
+  13:.\AmphenolDust.c ****  * ========================================
+  14:.\AmphenolDust.c **** */
+  15:.\AmphenolDust.c **** 
+  16:.\AmphenolDust.c **** #include "main.h"
+  17:.\AmphenolDust.c **** 
+  18:.\AmphenolDust.c **** uint32 SPdata=0;//stores Low pulse time for Small Particle Dust
+  19:.\AmphenolDust.c **** uint32 LPdata=0;//stores low pulse time for large particle dust
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 2
+
+
+  20:.\AmphenolDust.c **** 
+  21:.\AmphenolDust.c **** #ifdef AMPHENOL_DUST_H
+  22:.\AmphenolDust.c **** 
+  23:.\AmphenolDust.c **** 
+  24:.\AmphenolDust.c **** //function for accumulating low pulse time during read cycle. (non ISR method)
+  25:.\AmphenolDust.c **** //This function starts a blocking 30 second window in which the "Low pulse time"
+  26:.\AmphenolDust.c **** //is measured from the two PWM Dust Sensor inputs.
+  27:.\AmphenolDust.c **** //uint8 DustSamplingCycle(uint32 *array)
+  28:.\AmphenolDust.c **** uint8 DustSamplingCycle(void)
+  29:.\AmphenolDust.c **** {
+  39              		.loc 1 29 0
+  40              		.cfi_startproc
+  41 0000 B0B5     		push	{r4, r5, r7, lr}
+  42              		.cfi_def_cfa_offset 16
+  43              		.cfi_offset 4, -16
+  44              		.cfi_offset 5, -12
+  45              		.cfi_offset 7, -8
+  46              		.cfi_offset 14, -4
+  47 0002 82B0     		sub	sp, sp, #8
+  48              		.cfi_def_cfa_offset 24
+  49 0004 00AF     		add	r7, sp, #0
+  50              		.cfi_def_cfa_register 7
+  30:.\AmphenolDust.c **** /*----------- START: Start DustSamplingCycle() Code --------------*/	
+  31:.\AmphenolDust.c **** 	//Start Variables
+  32:.\AmphenolDust.c **** 	SPdata = 0u;
+  51              		.loc 1 32 0
+  52 0006 6C4B     		ldr	r3, .L16
+  53 0008 0022     		mov	r2, #0
+  54 000a 1A60     		str	r2, [r3]
+  33:.\AmphenolDust.c **** 	LPdata = 0u;
+  55              		.loc 1 33 0
+  56 000c 6B4B     		ldr	r3, .L16+4
+  57 000e 0022     		mov	r2, #0
+  58 0010 1A60     		str	r2, [r3]
+  34:.\AmphenolDust.c **** 	uint32 currentCount = 0u;//for sampling window
+  59              		.loc 1 34 0
+  60 0012 0023     		mov	r3, #0
+  61 0014 7B60     		str	r3, [r7, #4]
+  35:.\AmphenolDust.c **** 
+  36:.\AmphenolDust.c **** 	//Reset Counters
+  37:.\AmphenolDust.c **** 	CounterLP1_WriteCounter(currentCount);
+  62              		.loc 1 37 0
+  63 0016 7B68     		ldr	r3, [r7, #4]
+  64 0018 181C     		mov	r0, r3
+  65 001a FFF7FEFF 		bl	CounterLP1_WriteCounter
+  38:.\AmphenolDust.c **** 	CounterLP2_WriteCounter(currentCount);	
+  66              		.loc 1 38 0
+  67 001e 7B68     		ldr	r3, [r7, #4]
+  68 0020 181C     		mov	r0, r3
+  69 0022 FFF7FEFF 		bl	CounterLP2_WriteCounter
+  39:.\AmphenolDust.c **** 	
+  40:.\AmphenolDust.c **** 	/* Start Components */
+  41:.\AmphenolDust.c **** 	Clock_Counter_Start();
+  70              		.loc 1 41 0
+  71 0026 FF20     		mov	r0, #255
+  72 0028 FFF7FEFF 		bl	Clock_Counter_StartEx
+  42:.\AmphenolDust.c **** 	CounterLP1_Start();
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 3
+
+
+  73              		.loc 1 42 0
+  74 002c FFF7FEFF 		bl	CounterLP1_Start
+  43:.\AmphenolDust.c **** 	CounterLP2_Start();
+  75              		.loc 1 43 0
+  76 0030 FFF7FEFF 		bl	CounterLP2_Start
+  44:.\AmphenolDust.c **** 	CounterSP1_Start();	
+  77              		.loc 1 44 0
+  78 0034 FFF7FEFF 		bl	CounterSP1_Start
+  45:.\AmphenolDust.c **** 	CounterSP2_Start();
+  79              		.loc 1 45 0
+  80 0038 FFF7FEFF 		bl	CounterSP2_Start
+  46:.\AmphenolDust.c **** 	
+  47:.\AmphenolDust.c **** 	
+  48:.\AmphenolDust.c **** 	CounterLP1_TriggerCommand((CounterLP1_MASK|CounterLP2_MASK),CounterLP1_CMD_STOP);
+  81              		.loc 1 48 0
+  82 003c 0920     		mov	r0, #9
+  83 003e 1021     		mov	r1, #16
+  84 0040 FFF7FEFF 		bl	CounterLP1_TriggerCommand
+  49:.\AmphenolDust.c **** 	CounterLP2_WriteCounter(0u);
+  85              		.loc 1 49 0
+  86 0044 0020     		mov	r0, #0
+  87 0046 FFF7FEFF 		bl	CounterLP2_WriteCounter
+  50:.\AmphenolDust.c **** 	CounterLP1_WriteCounter(0u);
+  88              		.loc 1 50 0
+  89 004a 0020     		mov	r0, #0
+  90 004c FFF7FEFF 		bl	CounterLP1_WriteCounter
+  51:.\AmphenolDust.c **** 	
+  52:.\AmphenolDust.c **** 	while(CounterLP1_ReadCounter()>0u){
+  91              		.loc 1 52 0
+  92 0050 C046     		mov	r8, r8
+  93              	.L2:
+  94              		.loc 1 52 0 is_stmt 0 discriminator 1
+  95 0052 FFF7FEFF 		bl	CounterLP1_ReadCounter
+  96 0056 031C     		mov	r3, r0
+  97 0058 002B     		cmp	r3, #0
+  98 005a FAD1     		bne	.L2
+  53:.\AmphenolDust.c **** 		//RED_Write(~RED_Read());
+  54:.\AmphenolDust.c **** 		//CyDelay(150);
+  55:.\AmphenolDust.c **** 	}
+  56:.\AmphenolDust.c **** 	
+  57:.\AmphenolDust.c **** 	//Clear Both capture buffers so if line is LOW during first loop, the residual captures are not la
+  58:.\AmphenolDust.c **** 	CounterLP1_TriggerCommand((CounterLP1_MASK|CounterLP2_MASK),CounterLP1_CMD_CAPTURE);
+  99              		.loc 1 58 0 is_stmt 1
+ 100 005c 0920     		mov	r0, #9
+ 101 005e 0021     		mov	r1, #0
+ 102 0060 FFF7FEFF 		bl	CounterLP1_TriggerCommand
+  59:.\AmphenolDust.c **** 	CounterLP1_TriggerCommand((CounterLP1_MASK|CounterLP2_MASK),CounterLP1_CMD_CAPTURE);
+ 103              		.loc 1 59 0
+ 104 0064 0920     		mov	r0, #9
+ 105 0066 0021     		mov	r1, #0
+ 106 0068 FFF7FEFF 		bl	CounterLP1_TriggerCommand
+  60:.\AmphenolDust.c **** 	CounterLP1_TriggerCommand((CounterLP1_MASK|CounterLP2_MASK),CounterLP1_CMD_RELOAD);
+ 107              		.loc 1 60 0
+ 108 006c 0920     		mov	r0, #9
+ 109 006e 0821     		mov	r1, #8
+ 110 0070 FFF7FEFF 		bl	CounterLP1_TriggerCommand
+  61:.\AmphenolDust.c **** 	CounterLP1_TriggerCommand((CounterLP1_MASK|CounterLP2_MASK),CounterLP1_CMD_START);
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 4
+
+
+ 111              		.loc 1 61 0
+ 112 0074 0920     		mov	r0, #9
+ 113 0076 1821     		mov	r1, #24
+ 114 0078 FFF7FEFF 		bl	CounterLP1_TriggerCommand
+  62:.\AmphenolDust.c **** 	
+  63:.\AmphenolDust.c **** 	uint8 spFlag = ON_FLAG;
+ 115              		.loc 1 63 0
+ 116 007c FB1C     		add	r3, r7, #3
+ 117 007e 0122     		mov	r2, #1
+ 118 0080 1A70     		strb	r2, [r3]
+  64:.\AmphenolDust.c **** 	uint8 lpFlag = ON_FLAG;
+ 119              		.loc 1 64 0
+ 120 0082 BB1C     		add	r3, r7, #2
+ 121 0084 0122     		mov	r2, #1
+ 122 0086 1A70     		strb	r2, [r3]
+  65:.\AmphenolDust.c **** 
+  66:.\AmphenolDust.c **** 	uint32 lastLP;//1
+  67:.\AmphenolDust.c **** /*----------- END: Start DustSamplingCycle() Code --------------*/	
+  68:.\AmphenolDust.c **** 		
+  69:.\AmphenolDust.c **** /*----------- START: Loop DustSamplingCycle() Code --------------*/
+  70:.\AmphenolDust.c **** 	//while(currentCount<SAMPLING_WINDOW_COUNT)
+  71:.\AmphenolDust.c **** 	while(currentCount<(SAMPLING_WINDOW_COUNT/2))//sampling duration reduced for testing
+ 123              		.loc 1 71 0
+ 124 0088 53E0     		b	.L3
+ 125              	.L10:
+  72:.\AmphenolDust.c **** 	{	
+  73:.\AmphenolDust.c **** 		//SP handling
+  74:.\AmphenolDust.c **** 		if(Pin_SP_Read()==OFF_FLAG)
+ 126              		.loc 1 74 0
+ 127 008a FFF7FEFF 		bl	Pin_SP_Read
+ 128 008e 031C     		mov	r3, r0
+ 129 0090 002B     		cmp	r3, #0
+ 130 0092 07D1     		bne	.L4
+  75:.\AmphenolDust.c **** 		{
+  76:.\AmphenolDust.c **** 			if(spFlag)
+ 131              		.loc 1 76 0
+ 132 0094 FB1C     		add	r3, r7, #3
+ 133 0096 1B78     		ldrb	r3, [r3]
+ 134 0098 002B     		cmp	r3, #0
+ 135 009a 17D0     		beq	.L6
+  77:.\AmphenolDust.c **** 			{
+  78:.\AmphenolDust.c **** 				spFlag = OFF_FLAG;
+ 136              		.loc 1 78 0
+ 137 009c FB1C     		add	r3, r7, #3
+ 138 009e 0022     		mov	r2, #0
+ 139 00a0 1A70     		strb	r2, [r3]
+ 140 00a2 13E0     		b	.L6
+ 141              	.L4:
+  79:.\AmphenolDust.c **** 			}
+  80:.\AmphenolDust.c **** 		}
+  81:.\AmphenolDust.c **** 		else
+  82:.\AmphenolDust.c **** 		{
+  83:.\AmphenolDust.c **** 			if(spFlag==OFF_FLAG)//rising edge
+ 142              		.loc 1 83 0
+ 143 00a4 FB1C     		add	r3, r7, #3
+ 144 00a6 1B78     		ldrb	r3, [r3]
+ 145 00a8 002B     		cmp	r3, #0
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 5
+
+
+ 146 00aa 0FD1     		bne	.L6
+  84:.\AmphenolDust.c **** 			{
+  85:.\AmphenolDust.c **** 				SPdata += CounterSP1_ReadCapture()+(CounterSP2_ReadCapture()<<16u);
+ 147              		.loc 1 85 0
+ 148 00ac FFF7FEFF 		bl	CounterSP1_ReadCapture
+ 149 00b0 041C     		mov	r4, r0
+ 150 00b2 FFF7FEFF 		bl	CounterSP2_ReadCapture
+ 151 00b6 031C     		mov	r3, r0
+ 152 00b8 1B04     		lsl	r3, r3, #16
+ 153 00ba E218     		add	r2, r4, r3
+ 154 00bc 3E4B     		ldr	r3, .L16
+ 155 00be 1B68     		ldr	r3, [r3]
+ 156 00c0 D218     		add	r2, r2, r3
+ 157 00c2 3D4B     		ldr	r3, .L16
+ 158 00c4 1A60     		str	r2, [r3]
+  86:.\AmphenolDust.c **** 				spFlag = ON_FLAG;
+ 159              		.loc 1 86 0
+ 160 00c6 FB1C     		add	r3, r7, #3
+ 161 00c8 0122     		mov	r2, #1
+ 162 00ca 1A70     		strb	r2, [r3]
+ 163              	.L6:
+  87:.\AmphenolDust.c **** 			}
+  88:.\AmphenolDust.c **** 		}
+  89:.\AmphenolDust.c **** 		
+  90:.\AmphenolDust.c **** 		//LP handling & window handling
+  91:.\AmphenolDust.c **** 		if(Pin_LP_Read()==OFF_FLAG)
+ 164              		.loc 1 91 0
+ 165 00cc FFF7FEFF 		bl	Pin_LP_Read
+ 166 00d0 031C     		mov	r3, r0
+ 167 00d2 002B     		cmp	r3, #0
+ 168 00d4 07D1     		bne	.L7
+  92:.\AmphenolDust.c **** 		{
+  93:.\AmphenolDust.c **** 			if(lpFlag)
+ 169              		.loc 1 93 0
+ 170 00d6 BB1C     		add	r3, r7, #2
+ 171 00d8 1B78     		ldrb	r3, [r3]
+ 172 00da 002B     		cmp	r3, #0
+ 173 00dc 20D0     		beq	.L9
+  94:.\AmphenolDust.c **** 			{
+  95:.\AmphenolDust.c **** 				lpFlag = OFF_FLAG;//set flag to signal that rising edge has not yet occured					
+ 174              		.loc 1 95 0
+ 175 00de BB1C     		add	r3, r7, #2
+ 176 00e0 0022     		mov	r2, #0
+ 177 00e2 1A70     		strb	r2, [r3]
+ 178 00e4 1CE0     		b	.L9
+ 179              	.L7:
+  96:.\AmphenolDust.c **** 			}
+  97:.\AmphenolDust.c **** 
+  98:.\AmphenolDust.c **** 		}
+  99:.\AmphenolDust.c **** 		else
+ 100:.\AmphenolDust.c **** 		{
+ 101:.\AmphenolDust.c **** 			if(lpFlag==OFF_FLAG)
+ 180              		.loc 1 101 0
+ 181 00e6 BB1C     		add	r3, r7, #2
+ 182 00e8 1B78     		ldrb	r3, [r3]
+ 183 00ea 002B     		cmp	r3, #0
+ 184 00ec 18D1     		bne	.L9
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 6
+
+
+ 102:.\AmphenolDust.c **** 			{
+ 103:.\AmphenolDust.c **** 				lpFlag = ON_FLAG;
+ 185              		.loc 1 103 0
+ 186 00ee BB1C     		add	r3, r7, #2
+ 187 00f0 0122     		mov	r2, #1
+ 188 00f2 1A70     		strb	r2, [r3]
+ 104:.\AmphenolDust.c **** 				LPdata += (CounterLP1_ReadCapture()-CounterLP1_ReadCaptureBuf()) + ((CounterLP2_ReadCapture()-C
+ 189              		.loc 1 104 0
+ 190 00f4 FFF7FEFF 		bl	CounterLP1_ReadCapture
+ 191 00f8 041C     		mov	r4, r0
+ 192 00fa FFF7FEFF 		bl	CounterLP1_ReadCaptureBuf
+ 193 00fe 031C     		mov	r3, r0
+ 194 0100 E41A     		sub	r4, r4, r3
+ 195 0102 FFF7FEFF 		bl	CounterLP2_ReadCapture
+ 196 0106 051C     		mov	r5, r0
+ 197 0108 FFF7FEFF 		bl	CounterLP2_ReadCaptureBuf
+ 198 010c 031C     		mov	r3, r0
+ 199 010e EB1A     		sub	r3, r5, r3
+ 200 0110 2B4A     		ldr	r2, .L16+8
+ 201 0112 5343     		mul	r3, r2
+ 202 0114 E218     		add	r2, r4, r3
+ 203 0116 294B     		ldr	r3, .L16+4
+ 204 0118 1B68     		ldr	r3, [r3]
+ 205 011a D218     		add	r2, r2, r3
+ 206 011c 274B     		ldr	r3, .L16+4
+ 207 011e 1A60     		str	r2, [r3]
+ 208              	.L9:
+ 105:.\AmphenolDust.c **** 			}
+ 106:.\AmphenolDust.c **** 
+ 107:.\AmphenolDust.c **** 		}
+ 108:.\AmphenolDust.c **** 		//Check current count to see if 30 second window has expired.
+ 109:.\AmphenolDust.c **** 		currentCount = CounterLP1_ReadCounter()+(CounterLP2_ReadCounter()<<16u);
+ 209              		.loc 1 109 0
+ 210 0120 FFF7FEFF 		bl	CounterLP1_ReadCounter
+ 211 0124 041C     		mov	r4, r0
+ 212 0126 FFF7FEFF 		bl	CounterLP2_ReadCounter
+ 213 012a 031C     		mov	r3, r0
+ 214 012c 1B04     		lsl	r3, r3, #16
+ 215 012e E318     		add	r3, r4, r3
+ 216 0130 7B60     		str	r3, [r7, #4]
+ 217              	.L3:
+  71:.\AmphenolDust.c **** 	while(currentCount<(SAMPLING_WINDOW_COUNT/2))//sampling duration reduced for testing
+ 218              		.loc 1 71 0 discriminator 1
+ 219 0132 7A68     		ldr	r2, [r7, #4]
+ 220 0134 234B     		ldr	r3, .L16+12
+ 221 0136 9A42     		cmp	r2, r3
+ 222 0138 A7D9     		bls	.L10
+ 110:.\AmphenolDust.c **** 		
+ 111:.\AmphenolDust.c **** 	}//end of while loop
+ 112:.\AmphenolDust.c **** 
+ 113:.\AmphenolDust.c **** 	// code for handing error values
+ 114:.\AmphenolDust.c **** 	if(SPdata > SAMPLING_WINDOW_COUNT)
+ 223              		.loc 1 114 0
+ 224 013a 1F4B     		ldr	r3, .L16
+ 225 013c 1A68     		ldr	r2, [r3]
+ 226 013e 224B     		ldr	r3, .L16+16
+ 227 0140 9A42     		cmp	r2, r3
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 7
+
+
+ 228 0142 02D9     		bls	.L11
+ 115:.\AmphenolDust.c **** 	{
+ 116:.\AmphenolDust.c **** 		//error code
+ 117:.\AmphenolDust.c **** 		SPdata = 360000000u;
+ 229              		.loc 1 117 0
+ 230 0144 1C4B     		ldr	r3, .L16
+ 231 0146 204A     		ldr	r2, .L16+16
+ 232 0148 1A60     		str	r2, [r3]
+ 233              	.L11:
+ 118:.\AmphenolDust.c **** 	}
+ 119:.\AmphenolDust.c **** 	if(LPdata > SAMPLING_WINDOW_COUNT)
+ 234              		.loc 1 119 0
+ 235 014a 1C4B     		ldr	r3, .L16+4
+ 236 014c 1A68     		ldr	r2, [r3]
+ 237 014e 1E4B     		ldr	r3, .L16+16
+ 238 0150 9A42     		cmp	r2, r3
+ 239 0152 02D9     		bls	.L12
+ 120:.\AmphenolDust.c **** 	{
+ 121:.\AmphenolDust.c **** 		//error code
+ 122:.\AmphenolDust.c **** 		LPdata = 360000000u;
+ 240              		.loc 1 122 0
+ 241 0154 194B     		ldr	r3, .L16+4
+ 242 0156 1C4A     		ldr	r2, .L16+16
+ 243 0158 1A60     		str	r2, [r3]
+ 244              	.L12:
+ 123:.\AmphenolDust.c **** 	}
+ 124:.\AmphenolDust.c **** 	
+ 125:.\AmphenolDust.c **** 	// code for handing error values
+ 126:.\AmphenolDust.c **** 	if(SPdata==0u)
+ 245              		.loc 1 126 0
+ 246 015a 174B     		ldr	r3, .L16
+ 247 015c 1B68     		ldr	r3, [r3]
+ 248 015e 002B     		cmp	r3, #0
+ 249 0160 02D1     		bne	.L13
+ 127:.\AmphenolDust.c **** 	{
+ 128:.\AmphenolDust.c **** 		SPdata = 1u;
+ 250              		.loc 1 128 0
+ 251 0162 154B     		ldr	r3, .L16
+ 252 0164 0122     		mov	r2, #1
+ 253 0166 1A60     		str	r2, [r3]
+ 254              	.L13:
+ 129:.\AmphenolDust.c **** 	}
+ 130:.\AmphenolDust.c **** 	if(LPdata == 0u)
+ 255              		.loc 1 130 0
+ 256 0168 144B     		ldr	r3, .L16+4
+ 257 016a 1B68     		ldr	r3, [r3]
+ 258 016c 002B     		cmp	r3, #0
+ 259 016e 02D1     		bne	.L14
+ 131:.\AmphenolDust.c **** 	{
+ 132:.\AmphenolDust.c **** 		LPdata = 1u;
+ 260              		.loc 1 132 0
+ 261 0170 124B     		ldr	r3, .L16+4
+ 262 0172 0122     		mov	r2, #1
+ 263 0174 1A60     		str	r2, [r3]
+ 264              	.L14:
+ 133:.\AmphenolDust.c **** 	}		
+ 134:.\AmphenolDust.c **** /*----------- END: Loop DustSamplingCycle() Code --------------*/	
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 8
+
+
+ 135:.\AmphenolDust.c **** 
+ 136:.\AmphenolDust.c **** 	
+ 137:.\AmphenolDust.c **** /*----------- START: Stop DustSamplingCycle() Code --------------*/	
+ 138:.\AmphenolDust.c **** 	//Stop Variables
+ 139:.\AmphenolDust.c **** 
+ 140:.\AmphenolDust.c **** 	/* Stop Clocks */
+ 141:.\AmphenolDust.c **** 	CounterLP1_TriggerCommand((CounterLP1_MASK|CounterLP2_MASK),CounterLP1_CMD_STOP);
+ 265              		.loc 1 141 0
+ 266 0176 0920     		mov	r0, #9
+ 267 0178 1021     		mov	r1, #16
+ 268 017a FFF7FEFF 		bl	CounterLP1_TriggerCommand
+ 142:.\AmphenolDust.c **** 	
+ 143:.\AmphenolDust.c **** 	CounterLP1_WriteCounter(1u);
+ 269              		.loc 1 143 0
+ 270 017e 0120     		mov	r0, #1
+ 271 0180 FFF7FEFF 		bl	CounterLP1_WriteCounter
+ 144:.\AmphenolDust.c **** 	CounterLP2_WriteCounter(1u);
+ 272              		.loc 1 144 0
+ 273 0184 0120     		mov	r0, #1
+ 274 0186 FFF7FEFF 		bl	CounterLP2_WriteCounter
+ 145:.\AmphenolDust.c **** 	//Clear Both capture buffers so if line is LOW during first loop, the residual captures are not la
+ 146:.\AmphenolDust.c **** 	CounterLP1_TriggerCommand((CounterLP1_MASK|CounterLP2_MASK),CounterLP1_CMD_CAPTURE);
+ 275              		.loc 1 146 0
+ 276 018a 0920     		mov	r0, #9
+ 277 018c 0021     		mov	r1, #0
+ 278 018e FFF7FEFF 		bl	CounterLP1_TriggerCommand
+ 147:.\AmphenolDust.c **** 	CounterLP1_TriggerCommand((CounterLP1_MASK|CounterLP2_MASK),CounterLP1_CMD_CAPTURE);
+ 279              		.loc 1 147 0
+ 280 0192 0920     		mov	r0, #9
+ 281 0194 0021     		mov	r1, #0
+ 282 0196 FFF7FEFF 		bl	CounterLP1_TriggerCommand
+ 148:.\AmphenolDust.c **** 	
+ 149:.\AmphenolDust.c **** 	Clock_Counter_Stop();	
+ 283              		.loc 1 149 0
+ 284 019a FFF7FEFF 		bl	Clock_Counter_Stop
+ 150:.\AmphenolDust.c **** 	
+ 151:.\AmphenolDust.c **** 	//Stop Components
+ 152:.\AmphenolDust.c **** 	CounterLP1_Stop();
+ 285              		.loc 1 152 0
+ 286 019e FFF7FEFF 		bl	CounterLP1_Stop
+ 153:.\AmphenolDust.c **** 	CounterLP2_Stop();	
+ 287              		.loc 1 153 0
+ 288 01a2 FFF7FEFF 		bl	CounterLP2_Stop
+ 154:.\AmphenolDust.c **** 	CounterSP1_Stop();
+ 289              		.loc 1 154 0
+ 290 01a6 FFF7FEFF 		bl	CounterSP1_Stop
+ 155:.\AmphenolDust.c **** 	CounterSP2_Stop();	
+ 291              		.loc 1 155 0
+ 292 01aa FFF7FEFF 		bl	CounterSP2_Stop
+ 156:.\AmphenolDust.c **** 	
+ 157:.\AmphenolDust.c **** 	
+ 158:.\AmphenolDust.c **** 	//Store/return Values
+ 159:.\AmphenolDust.c **** 	//*(array) = SPdata;
+ 160:.\AmphenolDust.c **** 	// *(array+1u) = LPdata;
+ 161:.\AmphenolDust.c **** 	
+ 162:.\AmphenolDust.c **** 	#ifdef XBEE_IS_ENABLED
+ 163:.\AmphenolDust.c **** 		XBee_PutChar(3u);
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 9
+
+
+ 164:.\AmphenolDust.c **** 		XBee_PutChar(SPdata);
+ 165:.\AmphenolDust.c **** 		XBee_PutChar(SPdata/255u);
+ 166:.\AmphenolDust.c **** 		XBee_PutChar(SPdata/65535u);
+ 167:.\AmphenolDust.c **** 		XBee_PutChar(SPdata/16777216u);
+ 168:.\AmphenolDust.c **** 		
+ 169:.\AmphenolDust.c **** 		XBee_PutChar(LPdata);
+ 170:.\AmphenolDust.c **** 		XBee_PutChar(LPdata/255u);
+ 171:.\AmphenolDust.c **** 		XBee_PutChar(LPdata/65535u);
+ 172:.\AmphenolDust.c **** 		XBee_PutChar(LPdata/16777216u);
+ 173:.\AmphenolDust.c **** //			XBee_PutChar(LPdata>>BYTE1_SHIFT);
+ 174:.\AmphenolDust.c **** //			XBee_PutChar(LPdata>>BYTE2_SHIFT);
+ 175:.\AmphenolDust.c **** //			XBee_PutChar(LPdata>>BYTE3_SHIFT);
+ 176:.\AmphenolDust.c **** 	#endif
+ 177:.\AmphenolDust.c **** 
+ 178:.\AmphenolDust.c **** 	return IDLE_STATE;
+ 293              		.loc 1 178 0
+ 294 01ae 0123     		mov	r3, #1
+ 179:.\AmphenolDust.c **** /*----------- END: Stop DustSamplingCycle() Code --------------*/	
+ 180:.\AmphenolDust.c **** }
+ 295              		.loc 1 180 0
+ 296 01b0 181C     		mov	r0, r3
+ 297 01b2 BD46     		mov	sp, r7
+ 298 01b4 02B0     		add	sp, sp, #8
+ 299              		@ sp needed
+ 300 01b6 B0BD     		pop	{r4, r5, r7, pc}
+ 301              	.L17:
+ 302              		.align	2
+ 303              	.L16:
+ 304 01b8 00000000 		.word	SPdata
+ 305 01bc 00000000 		.word	LPdata
+ 306 01c0 DCFF0000 		.word	65500
+ 307 01c4 FF94BA0A 		.word	179999999
+ 308 01c8 002A7515 		.word	360000000
+ 309              		.cfi_endproc
+ 310              	.LFE35:
+ 311              		.size	DustSamplingCycle, .-DustSamplingCycle
+ 312              		.text
+ 313              	.Letext0:
+ 314              		.file 2 ".\\Generated_Source\\PSoC4/cytypes.h"
+ 315              		.file 3 ".\\Generated_Source\\PSoC4/BLE_Stack.h"
+ 316              		.section	.debug_info,"",%progbits
+ 317              	.Ldebug_info0:
+ 318 0000 7B020000 		.4byte	0x27b
+ 319 0004 0400     		.2byte	0x4
+ 320 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 321 000a 04       		.byte	0x4
+ 322 000b 01       		.uleb128 0x1
+ 323 000c D6070000 		.4byte	.LASF74
+ 324 0010 01       		.byte	0x1
+ 325 0011 7F070000 		.4byte	.LASF75
+ 326 0015 DB010000 		.4byte	.LASF76
+ 327 0019 00000000 		.4byte	.Ldebug_ranges0+0
+ 328 001d 00000000 		.4byte	0
+ 329 0021 00000000 		.4byte	.Ldebug_line0
+ 330 0025 02       		.uleb128 0x2
+ 331 0026 01       		.byte	0x1
+ 332 0027 06       		.byte	0x6
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 10
+
+
+ 333 0028 12040000 		.4byte	.LASF0
+ 334 002c 02       		.uleb128 0x2
+ 335 002d 01       		.byte	0x1
+ 336 002e 08       		.byte	0x8
+ 337 002f C7030000 		.4byte	.LASF1
+ 338 0033 02       		.uleb128 0x2
+ 339 0034 02       		.byte	0x2
+ 340 0035 05       		.byte	0x5
+ 341 0036 4B000000 		.4byte	.LASF2
+ 342 003a 02       		.uleb128 0x2
+ 343 003b 02       		.byte	0x2
+ 344 003c 07       		.byte	0x7
+ 345 003d FF040000 		.4byte	.LASF3
+ 346 0041 02       		.uleb128 0x2
+ 347 0042 04       		.byte	0x4
+ 348 0043 05       		.byte	0x5
+ 349 0044 94020000 		.4byte	.LASF4
+ 350 0048 02       		.uleb128 0x2
+ 351 0049 04       		.byte	0x4
+ 352 004a 07       		.byte	0x7
+ 353 004b A3040000 		.4byte	.LASF5
+ 354 004f 02       		.uleb128 0x2
+ 355 0050 08       		.byte	0x8
+ 356 0051 05       		.byte	0x5
+ 357 0052 6F020000 		.4byte	.LASF6
+ 358 0056 02       		.uleb128 0x2
+ 359 0057 08       		.byte	0x8
+ 360 0058 07       		.byte	0x7
+ 361 0059 7D020000 		.4byte	.LASF7
+ 362 005d 03       		.uleb128 0x3
+ 363 005e 04       		.byte	0x4
+ 364 005f 05       		.byte	0x5
+ 365 0060 696E7400 		.ascii	"int\000"
+ 366 0064 02       		.uleb128 0x2
+ 367 0065 04       		.byte	0x4
+ 368 0066 07       		.byte	0x7
+ 369 0067 7B040000 		.4byte	.LASF8
+ 370 006b 04       		.uleb128 0x4
+ 371 006c 9B030000 		.4byte	.LASF9
+ 372 0070 02       		.byte	0x2
+ 373 0071 A1       		.byte	0xa1
+ 374 0072 2C000000 		.4byte	0x2c
+ 375 0076 04       		.uleb128 0x4
+ 376 0077 99050000 		.4byte	.LASF10
+ 377 007b 02       		.byte	0x2
+ 378 007c A3       		.byte	0xa3
+ 379 007d 48000000 		.4byte	0x48
+ 380 0081 02       		.uleb128 0x2
+ 381 0082 04       		.byte	0x4
+ 382 0083 04       		.byte	0x4
+ 383 0084 24000000 		.4byte	.LASF11
+ 384 0088 02       		.uleb128 0x2
+ 385 0089 08       		.byte	0x8
+ 386 008a 04       		.byte	0x4
+ 387 008b E8050000 		.4byte	.LASF12
+ 388 008f 02       		.uleb128 0x2
+ 389 0090 01       		.byte	0x1
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 11
+
+
+ 390 0091 08       		.byte	0x8
+ 391 0092 3B050000 		.4byte	.LASF13
+ 392 0096 02       		.uleb128 0x2
+ 393 0097 04       		.byte	0x4
+ 394 0098 07       		.byte	0x7
+ 395 0099 8D000000 		.4byte	.LASF14
+ 396 009d 05       		.uleb128 0x5
+ 397 009e 01       		.byte	0x1
+ 398 009f 03       		.byte	0x3
+ 399 00a0 52       		.byte	0x52
+ 400 00a1 0D020000 		.4byte	0x20d
+ 401 00a5 06       		.uleb128 0x6
+ 402 00a6 7E010000 		.4byte	.LASF15
+ 403 00aa 00       		.sleb128 0
+ 404 00ab 06       		.uleb128 0x6
+ 405 00ac E9000000 		.4byte	.LASF16
+ 406 00b0 01       		.sleb128 1
+ 407 00b1 06       		.uleb128 0x6
+ 408 00b2 FE060000 		.4byte	.LASF17
+ 409 00b6 02       		.sleb128 2
+ 410 00b7 06       		.uleb128 0x6
+ 411 00b8 12060000 		.4byte	.LASF18
+ 412 00bc 03       		.sleb128 3
+ 413 00bd 06       		.uleb128 0x6
+ 414 00be B3000000 		.4byte	.LASF19
+ 415 00c2 04       		.sleb128 4
+ 416 00c3 06       		.uleb128 0x6
+ 417 00c4 2D030000 		.4byte	.LASF20
+ 418 00c8 05       		.sleb128 5
+ 419 00c9 06       		.uleb128 0x6
+ 420 00ca 70060000 		.4byte	.LASF21
+ 421 00ce 20       		.sleb128 32
+ 422 00cf 06       		.uleb128 0x6
+ 423 00d0 B5040000 		.4byte	.LASF22
+ 424 00d4 21       		.sleb128 33
+ 425 00d5 06       		.uleb128 0x6
+ 426 00d6 00000000 		.4byte	.LASF23
+ 427 00da 22       		.sleb128 34
+ 428 00db 06       		.uleb128 0x6
+ 429 00dc 49030000 		.4byte	.LASF24
+ 430 00e0 23       		.sleb128 35
+ 431 00e1 06       		.uleb128 0x6
+ 432 00e2 5F040000 		.4byte	.LASF25
+ 433 00e6 24       		.sleb128 36
+ 434 00e7 06       		.uleb128 0x6
+ 435 00e8 55000000 		.4byte	.LASF26
+ 436 00ec 25       		.sleb128 37
+ 437 00ed 06       		.uleb128 0x6
+ 438 00ee E4020000 		.4byte	.LASF27
+ 439 00f2 26       		.sleb128 38
+ 440 00f3 06       		.uleb128 0x6
+ 441 00f4 BE020000 		.4byte	.LASF28
+ 442 00f8 27       		.sleb128 39
+ 443 00f9 06       		.uleb128 0x6
+ 444 00fa 90070000 		.4byte	.LASF29
+ 445 00fe 28       		.sleb128 40
+ 446 00ff 06       		.uleb128 0x6
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 12
+
+
+ 447 0100 96000000 		.4byte	.LASF30
+ 448 0104 29       		.sleb128 41
+ 449 0105 06       		.uleb128 0x6
+ 450 0106 12050000 		.4byte	.LASF31
+ 451 010a 2A       		.sleb128 42
+ 452 010b 06       		.uleb128 0x6
+ 453 010c 34070000 		.4byte	.LASF32
+ 454 0110 2B       		.sleb128 43
+ 455 0111 06       		.uleb128 0x6
+ 456 0112 1A010000 		.4byte	.LASF33
+ 457 0116 2C       		.sleb128 44
+ 458 0117 06       		.uleb128 0x6
+ 459 0118 2A000000 		.4byte	.LASF34
+ 460 011c C000     		.sleb128 64
+ 461 011e 06       		.uleb128 0x6
+ 462 011f 88040000 		.4byte	.LASF35
+ 463 0123 C100     		.sleb128 65
+ 464 0125 06       		.uleb128 0x6
+ 465 0126 6F000000 		.4byte	.LASF36
+ 466 012a C200     		.sleb128 66
+ 467 012c 06       		.uleb128 0x6
+ 468 012d FC000000 		.4byte	.LASF37
+ 469 0131 C300     		.sleb128 67
+ 470 0133 06       		.uleb128 0x6
+ 471 0134 E0060000 		.4byte	.LASF38
+ 472 0138 C400     		.sleb128 68
+ 473 013a 06       		.uleb128 0x6
+ 474 013b 9B060000 		.4byte	.LASF39
+ 475 013f C500     		.sleb128 69
+ 476 0141 06       		.uleb128 0x6
+ 477 0142 C8000000 		.4byte	.LASF40
+ 478 0146 C600     		.sleb128 70
+ 479 0148 06       		.uleb128 0x6
+ 480 0149 F4030000 		.4byte	.LASF41
+ 481 014d C700     		.sleb128 71
+ 482 014f 06       		.uleb128 0x6
+ 483 0150 38040000 		.4byte	.LASF42
+ 484 0154 C800     		.sleb128 72
+ 485 0156 06       		.uleb128 0x6
+ 486 0157 3C020000 		.4byte	.LASF43
+ 487 015b C900     		.sleb128 73
+ 488 015d 06       		.uleb128 0x6
+ 489 015e 5C050000 		.4byte	.LASF44
+ 490 0162 CA00     		.sleb128 74
+ 491 0164 06       		.uleb128 0x6
+ 492 0165 3E010000 		.4byte	.LASF45
+ 493 0169 CB00     		.sleb128 75
+ 494 016b 06       		.uleb128 0x6
+ 495 016c 1E040000 		.4byte	.LASF46
+ 496 0170 CC00     		.sleb128 76
+ 497 0172 06       		.uleb128 0x6
+ 498 0173 55020000 		.4byte	.LASF47
+ 499 0177 CD00     		.sleb128 77
+ 500 0179 06       		.uleb128 0x6
+ 501 017a C2060000 		.4byte	.LASF48
+ 502 017e CE00     		.sleb128 78
+ 503 0180 06       		.uleb128 0x6
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 13
+
+
+ 504 0181 D5030000 		.4byte	.LASF49
+ 505 0185 CF00     		.sleb128 79
+ 506 0187 06       		.uleb128 0x6
+ 507 0188 60070000 		.4byte	.LASF50
+ 508 018c D000     		.sleb128 80
+ 509 018e 06       		.uleb128 0x6
+ 510 018f 7A050000 		.4byte	.LASF51
+ 511 0193 D100     		.sleb128 81
+ 512 0195 06       		.uleb128 0x6
+ 513 0196 0C030000 		.4byte	.LASF52
+ 514 019a D200     		.sleb128 82
+ 515 019c 06       		.uleb128 0x6
+ 516 019d 9D020000 		.4byte	.LASF53
+ 517 01a1 D300     		.sleb128 83
+ 518 01a3 06       		.uleb128 0x6
+ 519 01a4 5D010000 		.4byte	.LASF54
+ 520 01a8 D400     		.sleb128 84
+ 521 01aa 06       		.uleb128 0x6
+ 522 01ab B2070000 		.4byte	.LASF55
+ 523 01af D500     		.sleb128 85
+ 524 01b1 06       		.uleb128 0x6
+ 525 01b2 A1030000 		.4byte	.LASF56
+ 526 01b6 F000     		.sleb128 112
+ 527 01b8 06       		.uleb128 0x6
+ 528 01b9 4A060000 		.4byte	.LASF57
+ 529 01bd F100     		.sleb128 113
+ 530 01bf 06       		.uleb128 0x6
+ 531 01c0 40050000 		.4byte	.LASF58
+ 532 01c4 F200     		.sleb128 114
+ 533 01c6 06       		.uleb128 0x6
+ 534 01c7 95010000 		.4byte	.LASF59
+ 535 01cb F300     		.sleb128 115
+ 536 01cd 06       		.uleb128 0x6
+ 537 01ce 6F030000 		.4byte	.LASF60
+ 538 01d2 F400     		.sleb128 116
+ 539 01d4 06       		.uleb128 0x6
+ 540 01d5 CC040000 		.4byte	.LASF61
+ 541 01d9 F500     		.sleb128 117
+ 542 01db 06       		.uleb128 0x6
+ 543 01dc B3010000 		.4byte	.LASF62
+ 544 01e0 F600     		.sleb128 118
+ 545 01e2 06       		.uleb128 0x6
+ 546 01e3 2B060000 		.4byte	.LASF63
+ 547 01e7 F700     		.sleb128 119
+ 548 01e9 06       		.uleb128 0x6
+ 549 01ea BE050000 		.4byte	.LASF64
+ 550 01ee F800     		.sleb128 120
+ 551 01f0 06       		.uleb128 0x6
+ 552 01f1 EF050000 		.4byte	.LASF65
+ 553 01f5 F900     		.sleb128 121
+ 554 01f7 06       		.uleb128 0x6
+ 555 01f8 10070000 		.4byte	.LASF66
+ 556 01fc FA00     		.sleb128 122
+ 557 01fe 06       		.uleb128 0x6
+ 558 01ff A0050000 		.4byte	.LASF67
+ 559 0203 FA01     		.sleb128 250
+ 560 0205 06       		.uleb128 0x6
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 14
+
+
+ 561 0206 8D030000 		.4byte	.LASF68
+ 562 020a FF01     		.sleb128 255
+ 563 020c 00       		.byte	0
+ 564 020d 07       		.uleb128 0x7
+ 565 020e ED040000 		.4byte	.LASF77
+ 566 0212 01       		.byte	0x1
+ 567 0213 1C       		.byte	0x1c
+ 568 0214 6B000000 		.4byte	0x6b
+ 569 0218 00000000 		.4byte	.LFB35
+ 570 021c CC010000 		.4byte	.LFE35-.LFB35
+ 571 0220 01       		.uleb128 0x1
+ 572 0221 9C       		.byte	0x9c
+ 573 0222 5C020000 		.4byte	0x25c
+ 574 0226 08       		.uleb128 0x8
+ 575 0227 53070000 		.4byte	.LASF69
+ 576 022b 01       		.byte	0x1
+ 577 022c 22       		.byte	0x22
+ 578 022d 76000000 		.4byte	0x76
+ 579 0231 02       		.uleb128 0x2
+ 580 0232 91       		.byte	0x91
+ 581 0233 6C       		.sleb128 -20
+ 582 0234 08       		.uleb128 0x8
+ 583 0235 E1050000 		.4byte	.LASF70
+ 584 0239 01       		.byte	0x1
+ 585 023a 3F       		.byte	0x3f
+ 586 023b 6B000000 		.4byte	0x6b
+ 587 023f 02       		.uleb128 0x2
+ 588 0240 91       		.byte	0x91
+ 589 0241 6B       		.sleb128 -21
+ 590 0242 08       		.uleb128 0x8
+ 591 0243 D4010000 		.4byte	.LASF71
+ 592 0247 01       		.byte	0x1
+ 593 0248 40       		.byte	0x40
+ 594 0249 6B000000 		.4byte	0x6b
+ 595 024d 02       		.uleb128 0x2
+ 596 024e 91       		.byte	0x91
+ 597 024f 6A       		.sleb128 -22
+ 598 0250 09       		.uleb128 0x9
+ 599 0251 44000000 		.4byte	.LASF78
+ 600 0255 01       		.byte	0x1
+ 601 0256 42       		.byte	0x42
+ 602 0257 76000000 		.4byte	0x76
+ 603 025b 00       		.byte	0
+ 604 025c 0A       		.uleb128 0xa
+ 605 025d 94060000 		.4byte	.LASF72
+ 606 0261 01       		.byte	0x1
+ 607 0262 12       		.byte	0x12
+ 608 0263 76000000 		.4byte	0x76
+ 609 0267 05       		.uleb128 0x5
+ 610 0268 03       		.byte	0x3
+ 611 0269 00000000 		.4byte	SPdata
+ 612 026d 0A       		.uleb128 0xa
+ 613 026e DD020000 		.4byte	.LASF73
+ 614 0272 01       		.byte	0x1
+ 615 0273 13       		.byte	0x13
+ 616 0274 76000000 		.4byte	0x76
+ 617 0278 05       		.uleb128 0x5
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 15
+
+
+ 618 0279 03       		.byte	0x3
+ 619 027a 00000000 		.4byte	LPdata
+ 620 027e 00       		.byte	0
+ 621              		.section	.debug_abbrev,"",%progbits
+ 622              	.Ldebug_abbrev0:
+ 623 0000 01       		.uleb128 0x1
+ 624 0001 11       		.uleb128 0x11
+ 625 0002 01       		.byte	0x1
+ 626 0003 25       		.uleb128 0x25
+ 627 0004 0E       		.uleb128 0xe
+ 628 0005 13       		.uleb128 0x13
+ 629 0006 0B       		.uleb128 0xb
+ 630 0007 03       		.uleb128 0x3
+ 631 0008 0E       		.uleb128 0xe
+ 632 0009 1B       		.uleb128 0x1b
+ 633 000a 0E       		.uleb128 0xe
+ 634 000b 55       		.uleb128 0x55
+ 635 000c 17       		.uleb128 0x17
+ 636 000d 11       		.uleb128 0x11
+ 637 000e 01       		.uleb128 0x1
+ 638 000f 10       		.uleb128 0x10
+ 639 0010 17       		.uleb128 0x17
+ 640 0011 00       		.byte	0
+ 641 0012 00       		.byte	0
+ 642 0013 02       		.uleb128 0x2
+ 643 0014 24       		.uleb128 0x24
+ 644 0015 00       		.byte	0
+ 645 0016 0B       		.uleb128 0xb
+ 646 0017 0B       		.uleb128 0xb
+ 647 0018 3E       		.uleb128 0x3e
+ 648 0019 0B       		.uleb128 0xb
+ 649 001a 03       		.uleb128 0x3
+ 650 001b 0E       		.uleb128 0xe
+ 651 001c 00       		.byte	0
+ 652 001d 00       		.byte	0
+ 653 001e 03       		.uleb128 0x3
+ 654 001f 24       		.uleb128 0x24
+ 655 0020 00       		.byte	0
+ 656 0021 0B       		.uleb128 0xb
+ 657 0022 0B       		.uleb128 0xb
+ 658 0023 3E       		.uleb128 0x3e
+ 659 0024 0B       		.uleb128 0xb
+ 660 0025 03       		.uleb128 0x3
+ 661 0026 08       		.uleb128 0x8
+ 662 0027 00       		.byte	0
+ 663 0028 00       		.byte	0
+ 664 0029 04       		.uleb128 0x4
+ 665 002a 16       		.uleb128 0x16
+ 666 002b 00       		.byte	0
+ 667 002c 03       		.uleb128 0x3
+ 668 002d 0E       		.uleb128 0xe
+ 669 002e 3A       		.uleb128 0x3a
+ 670 002f 0B       		.uleb128 0xb
+ 671 0030 3B       		.uleb128 0x3b
+ 672 0031 0B       		.uleb128 0xb
+ 673 0032 49       		.uleb128 0x49
+ 674 0033 13       		.uleb128 0x13
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 16
+
+
+ 675 0034 00       		.byte	0
+ 676 0035 00       		.byte	0
+ 677 0036 05       		.uleb128 0x5
+ 678 0037 04       		.uleb128 0x4
+ 679 0038 01       		.byte	0x1
+ 680 0039 0B       		.uleb128 0xb
+ 681 003a 0B       		.uleb128 0xb
+ 682 003b 3A       		.uleb128 0x3a
+ 683 003c 0B       		.uleb128 0xb
+ 684 003d 3B       		.uleb128 0x3b
+ 685 003e 0B       		.uleb128 0xb
+ 686 003f 01       		.uleb128 0x1
+ 687 0040 13       		.uleb128 0x13
+ 688 0041 00       		.byte	0
+ 689 0042 00       		.byte	0
+ 690 0043 06       		.uleb128 0x6
+ 691 0044 28       		.uleb128 0x28
+ 692 0045 00       		.byte	0
+ 693 0046 03       		.uleb128 0x3
+ 694 0047 0E       		.uleb128 0xe
+ 695 0048 1C       		.uleb128 0x1c
+ 696 0049 0D       		.uleb128 0xd
+ 697 004a 00       		.byte	0
+ 698 004b 00       		.byte	0
+ 699 004c 07       		.uleb128 0x7
+ 700 004d 2E       		.uleb128 0x2e
+ 701 004e 01       		.byte	0x1
+ 702 004f 3F       		.uleb128 0x3f
+ 703 0050 19       		.uleb128 0x19
+ 704 0051 03       		.uleb128 0x3
+ 705 0052 0E       		.uleb128 0xe
+ 706 0053 3A       		.uleb128 0x3a
+ 707 0054 0B       		.uleb128 0xb
+ 708 0055 3B       		.uleb128 0x3b
+ 709 0056 0B       		.uleb128 0xb
+ 710 0057 27       		.uleb128 0x27
+ 711 0058 19       		.uleb128 0x19
+ 712 0059 49       		.uleb128 0x49
+ 713 005a 13       		.uleb128 0x13
+ 714 005b 11       		.uleb128 0x11
+ 715 005c 01       		.uleb128 0x1
+ 716 005d 12       		.uleb128 0x12
+ 717 005e 06       		.uleb128 0x6
+ 718 005f 40       		.uleb128 0x40
+ 719 0060 18       		.uleb128 0x18
+ 720 0061 9642     		.uleb128 0x2116
+ 721 0063 19       		.uleb128 0x19
+ 722 0064 01       		.uleb128 0x1
+ 723 0065 13       		.uleb128 0x13
+ 724 0066 00       		.byte	0
+ 725 0067 00       		.byte	0
+ 726 0068 08       		.uleb128 0x8
+ 727 0069 34       		.uleb128 0x34
+ 728 006a 00       		.byte	0
+ 729 006b 03       		.uleb128 0x3
+ 730 006c 0E       		.uleb128 0xe
+ 731 006d 3A       		.uleb128 0x3a
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 17
+
+
+ 732 006e 0B       		.uleb128 0xb
+ 733 006f 3B       		.uleb128 0x3b
+ 734 0070 0B       		.uleb128 0xb
+ 735 0071 49       		.uleb128 0x49
+ 736 0072 13       		.uleb128 0x13
+ 737 0073 02       		.uleb128 0x2
+ 738 0074 18       		.uleb128 0x18
+ 739 0075 00       		.byte	0
+ 740 0076 00       		.byte	0
+ 741 0077 09       		.uleb128 0x9
+ 742 0078 34       		.uleb128 0x34
+ 743 0079 00       		.byte	0
+ 744 007a 03       		.uleb128 0x3
+ 745 007b 0E       		.uleb128 0xe
+ 746 007c 3A       		.uleb128 0x3a
+ 747 007d 0B       		.uleb128 0xb
+ 748 007e 3B       		.uleb128 0x3b
+ 749 007f 0B       		.uleb128 0xb
+ 750 0080 49       		.uleb128 0x49
+ 751 0081 13       		.uleb128 0x13
+ 752 0082 00       		.byte	0
+ 753 0083 00       		.byte	0
+ 754 0084 0A       		.uleb128 0xa
+ 755 0085 34       		.uleb128 0x34
+ 756 0086 00       		.byte	0
+ 757 0087 03       		.uleb128 0x3
+ 758 0088 0E       		.uleb128 0xe
+ 759 0089 3A       		.uleb128 0x3a
+ 760 008a 0B       		.uleb128 0xb
+ 761 008b 3B       		.uleb128 0x3b
+ 762 008c 0B       		.uleb128 0xb
+ 763 008d 49       		.uleb128 0x49
+ 764 008e 13       		.uleb128 0x13
+ 765 008f 3F       		.uleb128 0x3f
+ 766 0090 19       		.uleb128 0x19
+ 767 0091 02       		.uleb128 0x2
+ 768 0092 18       		.uleb128 0x18
+ 769 0093 00       		.byte	0
+ 770 0094 00       		.byte	0
+ 771 0095 00       		.byte	0
+ 772              		.section	.debug_aranges,"",%progbits
+ 773 0000 1C000000 		.4byte	0x1c
+ 774 0004 0200     		.2byte	0x2
+ 775 0006 00000000 		.4byte	.Ldebug_info0
+ 776 000a 04       		.byte	0x4
+ 777 000b 00       		.byte	0
+ 778 000c 0000     		.2byte	0
+ 779 000e 0000     		.2byte	0
+ 780 0010 00000000 		.4byte	.LFB35
+ 781 0014 CC010000 		.4byte	.LFE35-.LFB35
+ 782 0018 00000000 		.4byte	0
+ 783 001c 00000000 		.4byte	0
+ 784              		.section	.debug_ranges,"",%progbits
+ 785              	.Ldebug_ranges0:
+ 786 0000 00000000 		.4byte	.LFB35
+ 787 0004 CC010000 		.4byte	.LFE35
+ 788 0008 00000000 		.4byte	0
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 18
+
+
+ 789 000c 00000000 		.4byte	0
+ 790              		.section	.debug_line,"",%progbits
+ 791              	.Ldebug_line0:
+ 792 0000 BC000000 		.section	.debug_str,"MS",%progbits,1
+ 792      02005C00 
+ 792      00000201 
+ 792      FB0E0D00 
+ 792      01010101 
+ 793              	.LASF23:
+ 794 0000 4359424C 		.ascii	"CYBLE_EVT_GAP_PASSKEY_ENTRY_REQUEST\000"
+ 794      455F4556 
+ 794      545F4741 
+ 794      505F5041 
+ 794      53534B45 
+ 795              	.LASF11:
+ 796 0024 666C6F61 		.ascii	"float\000"
+ 796      7400
+ 797              	.LASF34:
+ 798 002a 4359424C 		.ascii	"CYBLE_EVT_GATTC_ERROR_RSP\000"
+ 798      455F4556 
+ 798      545F4741 
+ 798      5454435F 
+ 798      4552524F 
+ 799              	.LASF78:
+ 800 0044 6C617374 		.ascii	"lastLP\000"
+ 800      4C5000
+ 801              	.LASF2:
+ 802 004b 73686F72 		.ascii	"short int\000"
+ 802      7420696E 
+ 802      7400
+ 803              	.LASF26:
+ 804 0055 4359424C 		.ascii	"CYBLE_EVT_GAP_AUTH_FAILED\000"
+ 804      455F4556 
+ 804      545F4741 
+ 804      505F4155 
+ 804      54485F46 
+ 805              	.LASF36:
+ 806 006f 4359424C 		.ascii	"CYBLE_EVT_GATT_DISCONNECT_IND\000"
+ 806      455F4556 
+ 806      545F4741 
+ 806      54545F44 
+ 806      4953434F 
+ 807              	.LASF14:
+ 808 008d 73697A65 		.ascii	"sizetype\000"
+ 808      74797065 
+ 808      00
+ 809              	.LASF30:
+ 810 0096 4359424C 		.ascii	"CYBLE_EVT_GAP_ENCRYPT_CHANGE\000"
+ 810      455F4556 
+ 810      545F4741 
+ 810      505F454E 
+ 810      43525950 
+ 811              	.LASF19:
+ 812 00b3 4359424C 		.ascii	"CYBLE_EVT_HCI_STATUS\000"
+ 812      455F4556 
+ 812      545F4843 
+ 812      495F5354 
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 19
+
+
+ 812      41545553 
+ 813              	.LASF40:
+ 814 00c8 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_BY_TYPE_RSP\000"
+ 814      455F4556 
+ 814      545F4741 
+ 814      5454435F 
+ 814      52454144 
+ 815              	.LASF16:
+ 816 00e9 4359424C 		.ascii	"CYBLE_EVT_STACK_ON\000"
+ 816      455F4556 
+ 816      545F5354 
+ 816      41434B5F 
+ 816      4F4E00
+ 817              	.LASF37:
+ 818 00fc 4359424C 		.ascii	"CYBLE_EVT_GATTS_XCNHG_MTU_REQ\000"
+ 818      455F4556 
+ 818      545F4741 
+ 818      5454535F 
+ 818      58434E48 
+ 819              	.LASF33:
+ 820 011a 4359424C 		.ascii	"CYBLE_EVT_GAP_KEYINFO_EXCHNGE_CMPLT\000"
+ 820      455F4556 
+ 820      545F4741 
+ 820      505F4B45 
+ 820      59494E46 
+ 821              	.LASF45:
+ 822 013e 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_MULTI_RSP\000"
+ 822      455F4556 
+ 822      545F4741 
+ 822      5454435F 
+ 822      52454144 
+ 823              	.LASF54:
+ 824 015d 4359424C 		.ascii	"CYBLE_EVT_GATTS_HANDLE_VALUE_CNF\000"
+ 824      455F4556 
+ 824      545F4741 
+ 824      5454535F 
+ 824      48414E44 
+ 825              	.LASF15:
+ 826 017e 4359424C 		.ascii	"CYBLE_EVT_HOST_INVALID\000"
+ 826      455F4556 
+ 826      545F484F 
+ 826      53545F49 
+ 826      4E56414C 
+ 827              	.LASF59:
+ 828 0195 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_CONN_IND\000"
+ 828      455F4556 
+ 828      545F4C32 
+ 828      4341505F 
+ 828      43424643 
+ 829              	.LASF62:
+ 830 01b3 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_DISCONN_CNF\000"
+ 830      455F4556 
+ 830      545F4C32 
+ 830      4341505F 
+ 830      43424643 
+ 831              	.LASF71:
+ 832 01d4 6C70466C 		.ascii	"lpFlag\000"
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 20
+
+
+ 832      616700
+ 833              	.LASF76:
+ 834 01db 433A5C55 		.ascii	"C:\\Users\\ksoneda\\Documents\\PSoC Creator\\Senior"
+ 834      73657273 
+ 834      5C6B736F 
+ 834      6E656461 
+ 834      5C446F63 
+ 835 0209 20446573 		.ascii	" Design\\AQM Firmware BLE\\AQM Firmware BLE v1.cyds"
+ 835      69676E5C 
+ 835      41514D20 
+ 835      4669726D 
+ 835      77617265 
+ 836 023a 6E00     		.ascii	"n\000"
+ 837              	.LASF43:
+ 838 023c 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_RSP\000"
+ 838      455F4556 
+ 838      545F4741 
+ 838      5454435F 
+ 838      52454144 
+ 839              	.LASF47:
+ 840 0255 4359424C 		.ascii	"CYBLE_EVT_GATTC_WRITE_RSP\000"
+ 840      455F4556 
+ 840      545F4741 
+ 840      5454435F 
+ 840      57524954 
+ 841              	.LASF6:
+ 842 026f 6C6F6E67 		.ascii	"long long int\000"
+ 842      206C6F6E 
+ 842      6720696E 
+ 842      7400
+ 843              	.LASF7:
+ 844 027d 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 844      206C6F6E 
+ 844      6720756E 
+ 844      7369676E 
+ 844      65642069 
+ 845              	.LASF4:
+ 846 0294 6C6F6E67 		.ascii	"long int\000"
+ 846      20696E74 
+ 846      00
+ 847              	.LASF53:
+ 848 029d 4359424C 		.ascii	"CYBLE_EVT_GATTC_HANDLE_VALUE_IND\000"
+ 848      455F4556 
+ 848      545F4741 
+ 848      5454435F 
+ 848      48414E44 
+ 849              	.LASF28:
+ 850 02be 4359424C 		.ascii	"CYBLE_EVT_GAP_DEVICE_CONNECTED\000"
+ 850      455F4556 
+ 850      545F4741 
+ 850      505F4445 
+ 850      56494345 
+ 851              	.LASF73:
+ 852 02dd 4C506461 		.ascii	"LPdata\000"
+ 852      746100
+ 853              	.LASF27:
+ 854 02e4 4359424C 		.ascii	"CYBLE_EVT_GAPP_ADVERTISEMENT_START_STOP\000"
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 21
+
+
+ 854      455F4556 
+ 854      545F4741 
+ 854      50505F41 
+ 854      44564552 
+ 855              	.LASF52:
+ 856 030c 4359424C 		.ascii	"CYBLE_EVT_GATTC_HANDLE_VALUE_NTF\000"
+ 856      455F4556 
+ 856      545F4741 
+ 856      5454435F 
+ 856      48414E44 
+ 857              	.LASF20:
+ 858 032d 4359424C 		.ascii	"CYBLE_EVT_STACK_BUSY_STATUS\000"
+ 858      455F4556 
+ 858      545F5354 
+ 858      41434B5F 
+ 858      42555359 
+ 859              	.LASF24:
+ 860 0349 4359424C 		.ascii	"CYBLE_EVT_GAP_PASSKEY_DISPLAY_REQUEST\000"
+ 860      455F4556 
+ 860      545F4741 
+ 860      505F5041 
+ 860      53534B45 
+ 861              	.LASF60:
+ 862 036f 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_CONN_CNF\000"
+ 862      455F4556 
+ 862      545F4C32 
+ 862      4341505F 
+ 862      43424643 
+ 863              	.LASF68:
+ 864 038d 4359424C 		.ascii	"CYBLE_EVT_MAX\000"
+ 864      455F4556 
+ 864      545F4D41 
+ 864      5800
+ 865              	.LASF9:
+ 866 039b 75696E74 		.ascii	"uint8\000"
+ 866      3800
+ 867              	.LASF56:
+ 868 03a1 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CONN_PARAM_UPDATE_REQ\000"
+ 868      455F4556 
+ 868      545F4C32 
+ 868      4341505F 
+ 868      434F4E4E 
+ 869              	.LASF1:
+ 870 03c7 756E7369 		.ascii	"unsigned char\000"
+ 870      676E6564 
+ 870      20636861 
+ 870      7200
+ 871              	.LASF49:
+ 872 03d5 4359424C 		.ascii	"CYBLE_EVT_GATTS_PREP_WRITE_REQ\000"
+ 872      455F4556 
+ 872      545F4741 
+ 872      5454535F 
+ 872      50524550 
+ 873              	.LASF41:
+ 874 03f4 4359424C 		.ascii	"CYBLE_EVT_GATTC_FIND_INFO_RSP\000"
+ 874      455F4556 
+ 874      545F4741 
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 22
+
+
+ 874      5454435F 
+ 874      46494E44 
+ 875              	.LASF0:
+ 876 0412 7369676E 		.ascii	"signed char\000"
+ 876      65642063 
+ 876      68617200 
+ 877              	.LASF46:
+ 878 041e 4359424C 		.ascii	"CYBLE_EVT_GATTS_WRITE_REQ\000"
+ 878      455F4556 
+ 878      545F4741 
+ 878      5454535F 
+ 878      57524954 
+ 879              	.LASF42:
+ 880 0438 4359424C 		.ascii	"CYBLE_EVT_GATTC_FIND_BY_TYPE_VALUE_RSP\000"
+ 880      455F4556 
+ 880      545F4741 
+ 880      5454435F 
+ 880      46494E44 
+ 881              	.LASF25:
+ 882 045f 4359424C 		.ascii	"CYBLE_EVT_GAP_AUTH_COMPLETE\000"
+ 882      455F4556 
+ 882      545F4741 
+ 882      505F4155 
+ 882      54485F43 
+ 883              	.LASF8:
+ 884 047b 756E7369 		.ascii	"unsigned int\000"
+ 884      676E6564 
+ 884      20696E74 
+ 884      00
+ 885              	.LASF35:
+ 886 0488 4359424C 		.ascii	"CYBLE_EVT_GATT_CONNECT_IND\000"
+ 886      455F4556 
+ 886      545F4741 
+ 886      54545F43 
+ 886      4F4E4E45 
+ 887              	.LASF5:
+ 888 04a3 6C6F6E67 		.ascii	"long unsigned int\000"
+ 888      20756E73 
+ 888      69676E65 
+ 888      6420696E 
+ 888      7400
+ 889              	.LASF22:
+ 890 04b5 4359424C 		.ascii	"CYBLE_EVT_GAP_AUTH_REQ\000"
+ 890      455F4556 
+ 890      545F4741 
+ 890      505F4155 
+ 890      54485F52 
+ 891              	.LASF61:
+ 892 04cc 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_DISCONN_IND\000"
+ 892      455F4556 
+ 892      545F4C32 
+ 892      4341505F 
+ 892      43424643 
+ 893              	.LASF77:
+ 894 04ed 44757374 		.ascii	"DustSamplingCycle\000"
+ 894      53616D70 
+ 894      6C696E67 
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 23
+
+
+ 894      4379636C 
+ 894      6500
+ 895              	.LASF3:
+ 896 04ff 73686F72 		.ascii	"short unsigned int\000"
+ 896      7420756E 
+ 896      7369676E 
+ 896      65642069 
+ 896      6E7400
+ 897              	.LASF31:
+ 898 0512 4359424C 		.ascii	"CYBLE_EVT_GAP_CONNECTION_UPDATE_COMPLETE\000"
+ 898      455F4556 
+ 898      545F4741 
+ 898      505F434F 
+ 898      4E4E4543 
+ 899              	.LASF13:
+ 900 053b 63686172 		.ascii	"char\000"
+ 900      00
+ 901              	.LASF58:
+ 902 0540 4359424C 		.ascii	"CYBLE_EVT_L2CAP_COMMAND_REJ\000"
+ 902      455F4556 
+ 902      545F4C32 
+ 902      4341505F 
+ 902      434F4D4D 
+ 903              	.LASF44:
+ 904 055c 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_BLOB_RSP\000"
+ 904      455F4556 
+ 904      545F4741 
+ 904      5454435F 
+ 904      52454144 
+ 905              	.LASF51:
+ 906 057a 4359424C 		.ascii	"CYBLE_EVT_GATTC_EXEC_WRITE_RSP\000"
+ 906      455F4556 
+ 906      545F4741 
+ 906      5454435F 
+ 906      45584543 
+ 907              	.LASF10:
+ 908 0599 75696E74 		.ascii	"uint32\000"
+ 908      333200
+ 909              	.LASF67:
+ 910 05a0 4359424C 		.ascii	"CYBLE_EVT_PENDING_FLASH_WRITE\000"
+ 910      455F4556 
+ 910      545F5045 
+ 910      4E44494E 
+ 910      475F464C 
+ 911              	.LASF64:
+ 912 05be 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_RX_CREDIT_IND\000"
+ 912      455F4556 
+ 912      545F4C32 
+ 912      4341505F 
+ 912      43424643 
+ 913              	.LASF70:
+ 914 05e1 7370466C 		.ascii	"spFlag\000"
+ 914      616700
+ 915              	.LASF12:
+ 916 05e8 646F7562 		.ascii	"double\000"
+ 916      6C6500
+ 917              	.LASF65:
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 24
+
+
+ 918 05ef 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_TX_CREDIT_IND\000"
+ 918      455F4556 
+ 918      545F4C32 
+ 918      4341505F 
+ 918      43424643 
+ 919              	.LASF18:
+ 920 0612 4359424C 		.ascii	"CYBLE_EVT_HARDWARE_ERROR\000"
+ 920      455F4556 
+ 920      545F4841 
+ 920      52445741 
+ 920      52455F45 
+ 921              	.LASF63:
+ 922 062b 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_DATA_READ\000"
+ 922      455F4556 
+ 922      545F4C32 
+ 922      4341505F 
+ 922      43424643 
+ 923              	.LASF57:
+ 924 064a 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CONN_PARAM_UPDATE_RSP\000"
+ 924      455F4556 
+ 924      545F4C32 
+ 924      4341505F 
+ 924      434F4E4E 
+ 925              	.LASF21:
+ 926 0670 4359424C 		.ascii	"CYBLE_EVT_GAPC_SCAN_PROGRESS_RESULT\000"
+ 926      455F4556 
+ 926      545F4741 
+ 926      50435F53 
+ 926      43414E5F 
+ 927              	.LASF72:
+ 928 0694 53506461 		.ascii	"SPdata\000"
+ 928      746100
+ 929              	.LASF39:
+ 930 069b 4359424C 		.ascii	"CYBLE_EVT_GATTC_READ_BY_GROUP_TYPE_RSP\000"
+ 930      455F4556 
+ 930      545F4741 
+ 930      5454435F 
+ 930      52454144 
+ 931              	.LASF48:
+ 932 06c2 4359424C 		.ascii	"CYBLE_EVT_GATTS_WRITE_CMD_REQ\000"
+ 932      455F4556 
+ 932      545F4741 
+ 932      5454535F 
+ 932      57524954 
+ 933              	.LASF38:
+ 934 06e0 4359424C 		.ascii	"CYBLE_EVT_GATTC_XCHNG_MTU_RSP\000"
+ 934      455F4556 
+ 934      545F4741 
+ 934      5454435F 
+ 934      5843484E 
+ 935              	.LASF17:
+ 936 06fe 4359424C 		.ascii	"CYBLE_EVT_TIMEOUT\000"
+ 936      455F4556 
+ 936      545F5449 
+ 936      4D454F55 
+ 936      5400
+ 937              	.LASF66:
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 25
+
+
+ 938 0710 4359424C 		.ascii	"CYBLE_EVT_L2CAP_CBFC_DATA_WRITE_IND\000"
+ 938      455F4556 
+ 938      545F4C32 
+ 938      4341505F 
+ 938      43424643 
+ 939              	.LASF32:
+ 940 0734 4359424C 		.ascii	"CYBLE_EVT_GAPC_SCAN_START_STOP\000"
+ 940      455F4556 
+ 940      545F4741 
+ 940      50435F53 
+ 940      43414E5F 
+ 941              	.LASF69:
+ 942 0753 63757272 		.ascii	"currentCount\000"
+ 942      656E7443 
+ 942      6F756E74 
+ 942      00
+ 943              	.LASF50:
+ 944 0760 4359424C 		.ascii	"CYBLE_EVT_GATTS_EXEC_WRITE_REQ\000"
+ 944      455F4556 
+ 944      545F4741 
+ 944      5454535F 
+ 944      45584543 
+ 945              	.LASF75:
+ 946 077f 2E5C416D 		.ascii	".\\AmphenolDust.c\000"
+ 946      7068656E 
+ 946      6F6C4475 
+ 946      73742E63 
+ 946      00
+ 947              	.LASF29:
+ 948 0790 4359424C 		.ascii	"CYBLE_EVT_GAP_DEVICE_DISCONNECTED\000"
+ 948      455F4556 
+ 948      545F4741 
+ 948      505F4445 
+ 948      56494345 
+ 949              	.LASF55:
+ 950 07b2 4359424C 		.ascii	"CYBLE_EVT_GATTS_DATA_SIGNED_CMD_REQ\000"
+ 950      455F4556 
+ 950      545F4741 
+ 950      5454535F 
+ 950      44415441 
+ 951              	.LASF74:
+ 952 07d6 474E5520 		.ascii	"GNU C 4.8.4 20140526 (release) [ARM/embedded-4_8-br"
+ 952      4320342E 
+ 952      382E3420 
+ 952      32303134 
+ 952      30353236 
+ 953 0809 616E6368 		.ascii	"anch revision 211358] -mcpu=cortex-m0 -mthumb -g -O"
+ 953      20726576 
+ 953      6973696F 
+ 953      6E203231 
+ 953      31333538 
+ 954 083c 30202D66 		.ascii	"0 -ffunction-sections\000"
+ 954      66756E63 
+ 954      74696F6E 
+ 954      2D736563 
+ 954      74696F6E 
+ 955              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 4.8.4 20140526 (release) [ARM/embedded-4_8-br
+ARM GAS  C:\Users\ksoneda\AppData\Local\Temp\ccfQ9eBM.s 			page 26
+
+

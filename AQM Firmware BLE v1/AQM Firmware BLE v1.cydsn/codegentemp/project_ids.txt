@@ -1,0 +1,5 @@
+C:\Users\ksoneda\Documents\PSoC Creator\Senior Design\AQM Firmware BLE\AQM Firmware BLE v1.cydsn\AQM Firmware BLE v1.cyprj|533339dc-bfea-4027-bd48-549d34596237
+C:\Program Files (x86)\Cypress\PSoC Creator\3.1\PSoC Creator\psoc\content\default\CyAnnotationLibrary\CyAnnotationLibrary.cylib\CyAnnotationLibrary.cyprj|29cee5ed-e08f-41be-83b0-cca49318f3c8
+C:\Program Files (x86)\Cypress\PSoC Creator\3.1\PSoC Creator\psoc\content\cycomponentlibraryupdates\CyComponentLibraryUpdates.cylib\CyComponentLibraryUpdates.cyprj|efe9aa13-231c-4b3a-b316-282cd46010b4
+C:\Program Files (x86)\Cypress\PSoC Creator\3.1\PSoC Creator\psoc\content\cycomponentlibrary\CyComponentLibrary.cylib\CyComponentLibrary.cyprj|91fd4d5a-47bc-43ae-8546-69c5e9838d60
+C:\Program Files (x86)\Cypress\PSoC Creator\3.1\PSoC Creator\psoc\content\cyprimitives\CyPrimitives.cylib\CyPrimitives.cyprj|a781d615-847d-4a7a-9772-c3a964d42462
